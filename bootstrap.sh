@@ -37,6 +37,7 @@ SKIP_PI=0
 SKIP_CONFIG=0
 SKIP_SHIM=0
 SKIP_ARDUINO=0
+SKIP_PIO=0
 SKIP_CORES=0
 SKIP_VENV=0
 SKIP_MODEL=0
@@ -61,6 +62,7 @@ for arg in "$@"; do
     --skip-config) SKIP_CONFIG=1 ;;
     --skip-shim) SKIP_SHIM=1 ;;
     --skip-arduino) SKIP_ARDUINO=1 ;;
+    --skip-pio) SKIP_PIO=1 ;;
     --skip-cores) SKIP_CORES=1 ;;
     --skip-venv) SKIP_VENV=1 ;;
     --skip-model) SKIP_MODEL=1 ;;
@@ -179,11 +181,16 @@ if [ "$SKIP_PI" = 0 ]; then
     run npm install --silent --no-audit --no-fund --prefix "$REL" \
       "@earendil-works/pi-coding-agent@$PI_VERSION"
     run sh -c "printf '%s\n' '$PI_VERSION' > '$PI_HOME/install/current-version'"
-    LAUNCHER="$HOME/.local/bin/pi"
-    act "write launcher $LAUNCHER"
+    LAUNCHERS="$HOME/.local/bin/pi"
+    [ -d "$HOME/.pi/agent/bin" ] && LAUNCHERS="$LAUNCHERS $HOME/.pi/agent/bin/pi"
+    act "write launcher(s): $LAUNCHERS"
     if [ "$DRY" = 0 ]; then
-      mkdir -p "$HOME/.local/bin"
-      cat > "$LAUNCHER" <<'EOF'
+      for LAUNCHER in $LAUNCHERS; do
+        mkdir -p "$(dirname "$LAUNCHER")"
+        if [ -f "$LAUNCHER" ] && ! grep -q PI_MANAGED_INSTALL_ROOT "$LAUNCHER"; then
+          cp -p "$LAUNCHER" "$LAUNCHER.bak.$(date +%Y%m%d%H%M%S)"
+        fi
+        cat > "$LAUNCHER" <<'EOF'
 #!/bin/sh
 set -e
 PI_ROOT=${PI_ROOT:-$HOME/.pi/agent}
@@ -194,7 +201,8 @@ export PATH PI_MANAGED_INSTALL_ROOT="$PI_ROOT/install"
 v=$(cat "$PI_ROOT/install/current-version") || { echo "Pi version file missing" >&2; exit 1; }
 exec "$PI_ROOT/install/releases/$v/node_modules/.bin/pi" "$@"
 EOF
-      chmod +x "$LAUNCHER"
+        chmod +x "$LAUNCHER"
+      done
     fi
   fi
 else
@@ -341,6 +349,34 @@ if [ -n "$CLI" ]; then
     done
   else
     say "cores/libs skipped (--skip-cores)"
+  fi
+fi
+
+# ---------------------------------------------------------------- platformio
+head_ "PlatformIO"
+PIO=""
+if command -v pio >/dev/null 2>&1; then PIO=$(command -v pio)
+elif [ -x "$HOME/.local/bin/pio" ]; then PIO="$HOME/.local/bin/pio"; fi
+if [ "$SKIP_PIO" = 1 ]; then
+  say "skipped (--skip-pio)"
+elif [ -n "$PIO" ]; then
+  ok "pio $("$PIO" --version 2>/dev/null | sed -n 's/.*version \([0-9.]*\).*/\1/p') at $PIO"
+else
+  act "install PlatformIO Core 6.2.0 into $HOME/.local/pio-venv"
+  run python3 -m venv "$HOME/.local/pio-venv"
+  run "$HOME/.local/pio-venv/bin/pip" install --disable-pip-version-check -q "platformio==6.2.0"
+  if [ "$DRY" = 0 ]; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$HOME/.local/pio-venv/bin/pio" "$HOME/.local/bin/pio"
+  fi
+  PIO="$HOME/.local/bin/pio"
+fi
+if [ -n "$PIO" ]; then
+  if "$PIO" pkg list -g 2>/dev/null | grep "espressif32" >/dev/null; then
+    ok "platform espressif32"
+  else
+    act "pio pkg install -g -p espressif32@6.13.0 (~1 GB)"
+    run "$PIO" pkg install -g -p "espressif32@6.13.0"
   fi
 fi
 

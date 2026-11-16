@@ -201,11 +201,19 @@ else:
 fi
 
 # 6 pi + config drift
-if command -v pi >/dev/null 2>&1; then
-  PV=$(pi --version 2>/dev/null | head -1)
-  if [ "$PV" = "$PI_VERSION" ]; then p "pi $PV"; else f "pi $PV (want $PI_VERSION)"; fi
+PI_BIN=""
+if command -v pi >/dev/null 2>&1; then PI_BIN=$(command -v pi)
+elif [ -x "$HOME/.local/bin/pi" ]; then PI_BIN="$HOME/.local/bin/pi"; fi
+if [ -n "$PI_BIN" ]; then
+  PV=$("$PI_BIN" --version 2>/dev/null | head -1)
+  if [ "$PV" = "$PI_VERSION" ]; then
+    p "pi $PV"
+    command -v pi >/dev/null 2>&1 || s "pi not on PATH (add \$HOME/.local/bin)"
+  else
+    f "pi $PV (want $PI_VERSION)"
+  fi
 else
-  f "pi not on PATH"
+  f "pi not installed"
 fi
 PI_HOME="$HOME/.pi/agent"
 if [ -L "$PI_HOME/extensions" ]; then
@@ -255,6 +263,17 @@ if [ -n "$CLI" ]; then
   done
 else
   f "arduino-cli not found"
+fi
+
+# 8b platformio (board_meta needs ~/.platformio/platforms/espressif32)
+PIO=""
+if command -v pio >/dev/null 2>&1; then PIO=$(command -v pio)
+elif [ -x "$HOME/.local/bin/pio" ]; then PIO="$HOME/.local/bin/pio"; fi
+if [ -n "$PIO" ]; then
+  p "pio $("$PIO" --version 2>/dev/null | sed -n 's/.*version \([0-9.]*\).*/\1/p')"
+  "$PIO" pkg list -g 2>/dev/null | grep "espressif32" >/dev/null && p "platform espressif32" || f "platform espressif32 missing"
+else
+  f "PlatformIO not found (board_meta needs it for esp32)"
 fi
 
 # 9 board maps
