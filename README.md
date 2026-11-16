@@ -69,7 +69,7 @@ For a new P106 box (e.g. the two-card build):
 ```bash
 git clone https://github.com/jamiea6v6/local-ai-stack.git
 cd local-ai-stack
-./bootstrap.sh --system --pull-models
+./bootstrap.sh --system --install-ollama --pull-models
 ./verify-stack.sh --profile p106
 ```
 

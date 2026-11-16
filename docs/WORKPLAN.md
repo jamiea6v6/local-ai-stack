@@ -64,3 +64,7 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   symlinks (managed elsewhere) and no P106 on this box. Second run: 0 actions. Anonymous fresh clone: bootstrap created only its
   venv, verify 26/0/4 exit 0. Also installed libportaudio2, pulled `gemma4:e4b-it-qat` (6.1 GB) and `llama3.2:3b`, and started
   the shim as a user unit. Next: I4.
+- 2026-11-16 — I3 addendum (commit 932ae64): `verify-stack.sh` gained hardware profiles (`auto|p106|gpu|cpu`), a real
+  completion through `:11435`, and `/api/ps` attribution (100% VRAM, context 32768), plus `--no-inference`. On SkyNet auto
+  resolves to `gpu`: 30 PASS / 0 FAIL / 3 SKIP; `--profile p106` fails on purpose there; anonymous fresh clone 30/0/3. README
+  now documents the tiers, the Proxmox-VM passthrough rule, and the new-P106-box recipe.
