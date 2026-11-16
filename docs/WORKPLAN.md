@@ -68,3 +68,12 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   completion through `:11435`, and `/api/ps` attribution (100% VRAM, context 32768), plus `--no-inference`. On SkyNet auto
   resolves to `gpu`: 30 PASS / 0 FAIL / 3 SKIP; `--profile p106` fails on purpose there; anonymous fresh clone 30/0/3. README
   now documents the tiers, the Proxmox-VM passthrough rule, and the new-P106-box recipe.
+- 2026-11-16 — brain1 (P106-100) updated from the public repo: `git clone` → `bootstrap.sh` (Pi 1.4.0, 9 extensions,
+  AGENTS/models/settings, shim unit repointed and restarted, arduino-cli 1.6.0 + cores + libs, PlatformIO 6.2.0 +
+  espressif32, venv with numpy/scipy/pyyaml) → rerun **0 actions**. `verify-stack.sh --profile p106`: **31 PASS / 1 FAIL /
+  3 SKIP**, completion through the shim, `loaded: 2974/2974 MiB ctx=32768`. Only FAIL is `libportaudio2` (needs the sudo
+  password); SKIPs are pi-not-on-non-login-PATH (login shell resolves `/home/jamie/.pi/agent/bin/pi`), no mcu-domain, no
+  vulkaninfo. Config backups: `~/pi-agent-config-backup-20261116-212417.tgz`; old `~/projects/cw-dsp` untouched.
+- 2026-11-16 — board_meta became host-independent: digests drop `extra.time.*`, normalize `<HOME>`/`<CLI_DIR>`, ignore
+  `runtime.ide.path`; `--seed-cache` fills the remote cache so a fresh box can `--check`; pio falls back across
+  `espressif32*` dirs. Proven by brain1 `--check` green against refs generated on SkyNet.
