@@ -58,4 +58,4 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
 
 ## Log
 - 2026-11-16 — I1 done (commit e03322c).
-- 2026-11-16 — I2 done: 6 boards generated under `refs/boards/`, `--check` green three runs in a row, fresh-clone check pending. Next: I3.
+- 2026-11-16 — I2 done: 6 boards generated under `refs/boards/`, `--check` green three runs in a row and on an anonymous fresh clone. Next: I3.
