@@ -52,10 +52,20 @@ export default function (pi: ExtensionAPI) {
 	pi.on("tool_execution_end", (event) => {
 		if (event.parentToolCallId) return;
 		if (event.toolName !== "verify") return;
-		if (event.isError) return;
 
 		const result = event.result as { content?: { type: string; text?: string }[] } | undefined;
 		const text = result?.content?.find((c) => c.type === "text")?.text ?? "";
+
+		// An errored verify is not a pass. verify throws on a timeout or a missing
+		// spec, and the old code returned here — so a hung or mistyped verify
+		// created no obligation and the model could settle as if it had succeeded.
+		if (event.isError) {
+			failedSpec = "the same spec";
+			failedCandidate = undefined;
+			lastReport = `VERIFY ERRORED — this is not a pass.\n${text.trim().slice(0, 800)}`;
+			return;
+		}
+
 		const failed = /VERIFY:\s*FAIL/i.test(text) || /\nFAIL\s/.test(text);
 
 		if (failed) {

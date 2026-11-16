@@ -21,6 +21,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { access, constants } from "node:fs/promises";
+import { resolve, sep } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { formatSize } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
@@ -46,6 +47,27 @@ interface VerifyDetails {
 	stderr: string;
 }
 
+/**
+ * Refuse a candidate that is the shipped reference implementation.
+ *
+ * The grader directory holds cw_filter.py, the 11/11 known-good answer. On a
+ * test whose point is to measure what the model can write, accepting that path
+ * lets it submit someone else's work as its own. Set PI_VERIFY_ALLOW_REFERENCE=1
+ * when deliberately grading the reference (e.g. to check the spec itself).
+ */
+function referenceRefusal(candidate: string): string | null {
+	if (process.env.PI_VERIFY_ALLOW_REFERENCE === "1") return null;
+	const parts = resolve(candidate).split(sep);
+	if (parts.includes("grader")) {
+		return (
+			`Refusing to verify a file under grader/: ${candidate}. ` +
+			"That directory holds the reference implementation; write your own candidate and verify that. " +
+			"(Set PI_VERIFY_ALLOW_REFERENCE=1 to grade the reference on purpose.)"
+		);
+	}
+	return null;
+}
+
 async function exists(p: string): Promise<boolean> {
 	try {
 		await access(p, constants.R_OK);
@@ -66,7 +88,7 @@ export default function (pi: ExtensionAPI) {
 			"Do not reason about whether your output is correct; run it.",
 		promptSnippet: "verify: run a python test spec against a file, report pass/fail",
 		promptGuidelines: [
-			"After writing or editing code, call verify with the relevant spec instead of asserting the result yourself.",
+			"After writing or editing code, call verify with the relevant spec instead of asserting the result yourself. Pass the file you wrote — never a reference implementation.",
 			"If verify reports failures, read them and fix the specific case named, rather than rewriting the whole file.",
 		],
 		parameters: Params,
@@ -81,6 +103,10 @@ export default function (pi: ExtensionAPI) {
 			}
 			if (candidate && !(await exists(candidate))) {
 				throw new Error(`Candidate not found: ${candidate}`);
+			}
+			if (candidate) {
+				const refusal = referenceRefusal(candidate);
+				if (refusal) throw new Error(refusal);
 			}
 
 			const args = candidate ? [spec, candidate] : [spec];

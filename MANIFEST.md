@@ -63,12 +63,12 @@ Two details in the shim that are not obvious and will bite if changed:
 | `harness/models.json` → `contextWindow` | 32768 | correct (what the shim actually gives) |
 | `systemd/ollama-v1-shim.service` → `OLLAMA_SHIM_CTX` | 32768 | correct (what the shim requests) |
 | ollama systemd env `OLLAMA_CONTEXT_LENGTH` | 8192 | server default; the shim overrides per request |
-| `harness/extensions/context-budget.ts` → `CONTEXT_LIMIT` | **8192** | **WRONG — known bug, fix pending** |
+| `harness/extensions/context-budget.ts` → `CONTEXT_LIMIT` | 32768 | correct since 2026-11-16 (`PI_CONTEXT_LIMIT` overrides) |
+| `harness/extensions/enforce-search.ts` → `CONTEXT_LIMIT` | 32768 | correct since 2026-11-16; room-for-lookup is 80% of it |
 
-`context-budget.ts` still believes the window is 8192, so it trims ~2340 tokens of context every turn
-for a window it does not have, and the harness rules tell the model "context window is 8192" when it is
-32768. **This is the first thing to fix in the harness.** Do not "fix" it by raising the ollama env var
-— the shim already does the job.
+All three harness constants (and the rules text in `pi-AGENTS.md`) now derive from the same number:
+`PI_CONTEXT_LIMIT` if set, otherwise 32768 — matching the shim's `OLLAMA_SHIM_CTX` and `models.json`.
+Do not "fix" a small-window symptom by raising the ollama env var — the shim already does the job.
 
 ### Context is cheap; VRAM is the constraint — but not the constraint you think
 
@@ -139,6 +139,20 @@ ancestry, +2340 for the doc-store `AGENTS.md`, +929 for the Pi harness `AGENTS.m
 
 All 14 verified byte-identical to `brain1:~/.pi/agent/...` on 2026-11-14.
 
+### §4a — patched after the 2026-11-16 review
+
+Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these are the current ones.
+
+| File | sha256 (first 16) | Change |
+|---|---|---|
+| `harness/extensions/context-budget.ts` | `4daa9c218ba37351` | window constant from `PI_CONTEXT_LIMIT`/32768; trim loop recomputes headroom per file |
+| `harness/extensions/enforce-search.ts` | `383bc8b3e35994aa` | same window source; lookup room scales with it; gate log uses `os.homedir()` |
+| `harness/extensions/verify-package.ts` | `5f184ce26e907fcc` | PyPI probe is Node `fetch` (the old python-in-a-template-literal threw before running); three verdicts incl. `COULD NOT CHECK` |
+| `harness/extensions/verify-persist.ts` | `b1c5f4263fb29a10` | an errored verify is a failure, not a pass |
+| `harness/extensions/verify.ts` | `c7b40dd6c77d6741` | refuses candidates under `grader/` unless `PI_VERIFY_ALLOW_REFERENCE=1` |
+| `harness/pi-AGENTS.md` | `d4523d6d5e1b3b89` | window is 32768; the reference implementation must not be copied or submitted |
+| `tools/ollama-v1-shim.mjs` | `7e137f69e8069126` | finish_reason/`length`, `max_tokens`, abort propagation, unhandled-rejection paths, id/index collisions, role/precision edge cases |
+
 ---
 
 ## 5. Known drift risk — read before deploying
@@ -165,7 +179,7 @@ mismatch.
 | `DECK.md` | the explainable presentation (house deck format: `## Slide N —`) | Thursday |
 | the grader example | `grader/` now holds `spec_cw_filter.py` + `stub_pyaudio.py` + `mutants/` (moved in from the old `cw-dsp` repo) | done |
 | updated test suite | `tests/LOCAL_AGENT_TEST_SUITE.md` is a snapshot; its harness refs are stale | Sunday/Monday |
-| the three harness bugs | `verify_package` 404-vs-error, the 8192/32768 window truth, the empty final answer | Monday |
+| the three harness bugs | `verify_package` 404-vs-error, the 8192/32768 window truth, the empty final answer | 2 of 3 fixed 2026-11-16; empty-final-answer still open |
 
 ---
 

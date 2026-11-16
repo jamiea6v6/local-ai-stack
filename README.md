@@ -62,14 +62,27 @@ python3 -m venv .venv && .venv/bin/pip install numpy scipy
 The bugs the grader exists to catch, and the harsher variant designed to fail, are in
 `grader/README.md` and `grader/mutants/`.
 
-## Known bugs in the captured harness
+## Review fixes (2026-11-16)
 
-Fixed in the source of truth, not yet in this capture — see `MANIFEST.md` §6:
+A static review of the capture found real defects; these are patched here, not just noted:
 
-- `context-budget.ts` still assumes an 8192-token window while the shim provides 32768, so it trims
-  ~2340 tokens per turn for a window the box does not have.
-- `verify-package.ts` reports "DOES NOT EXIST" when its probe fails, not only when a package is
-  genuinely absent (it produced three false negatives on numpy/scipy/sounddevice).
+- `verify-package.ts`'s PyPI probe built a python one-liner inside a JavaScript template literal, so
+  Node evaluated `${encodeURIComponent(sys.argv[1])}` and threw before python ran — every PyPI name
+  became "DOES NOT EXIST". It now uses Node's `fetch`, and all three probes report **COULD NOT CHECK**
+  for timeouts and network failures instead of calling a real package fake.
+- The 8192-token assumption lived in `context-budget.ts`, `enforce-search.ts`, and `pi-AGENTS.md`.
+  All three now derive from `PI_CONTEXT_LIMIT` (default 32768), and the trim loop recomputes headroom
+  after each file instead of truncating every large file to 12%.
+- `verify-persist.ts` ignored errored verify calls, so a mistyped or hung verify created no
+  obligation. An error is now treated as a failure.
+- `verify.ts` refuses to grade a candidate under `grader/`, so the model cannot submit the reference
+  implementation as its own work.
+- The shim: `finish_reason` no longer reports "stop" when tools were called, `length` is reported on
+  truncation, `max_tokens` maps to `num_predict`, abandoned clients abort the upstream request,
+  unhandled-rejection paths were closed, tool-call ids/indices no longer collide, and `developer`
+  messages are not demoted to `user`.
+
+Still open: the empty-final-answer case (`MANIFEST.md` §6).
 
 ## Provenance
 

@@ -42,6 +42,11 @@ const PORT = Number(process.env.OLLAMA_SHIM_PORT || 11435);
 const TARGET = process.env.OLLAMA_SHIM_TARGET || "http://127.0.0.1:11434";
 const CTX = Number(process.env.OLLAMA_SHIM_CTX || 32768);
 
+// Tool-call ids must be unique across the whole process. `call_${i}` made
+// every turn's first call `call_0`, so a client matching by id could pair a
+// result with the wrong call.
+let toolCallSeq = 0;
+
 async function readBody(req) {
 	const chunks = [];
 	for await (const c of req) chunks.push(c);
@@ -52,8 +57,22 @@ async function readBody(req) {
 function toNative(body) {
 	const messages = [];
 
+	const toolNamesById = new Map();
 	for (const m of body.messages || []) {
-		const role = m.role === "assistant" ? "assistant" : m.role === "tool" ? "tool" : m.role === "system" ? "system" : "user";
+		// OpenAI tool messages carry only tool_call_id; Ollama pairs by name.
+		if (Array.isArray(m.tool_calls)) {
+			for (const tc of m.tool_calls) {
+				if (tc?.id) toolNamesById.set(tc.id, tc.function?.name || "");
+			}
+		}
+		const role =
+			m.role === "assistant"
+				? "assistant"
+				: m.role === "tool"
+					? "tool"
+					: m.role === "system" || m.role === "developer"
+						? "system"
+						: "user";
 		const content =
 			typeof m.content === "string"
 				? m.content
@@ -98,7 +117,7 @@ function toNative(body) {
 
 		// A tool result carries the call's name so Ollama can pair it.
 		if (role === "tool" && m.tool_call_id) {
-			msg.tool_name = m.name || m.tool_name || "";
+			msg.tool_name = toolNamesById.get(m.tool_call_id) || m.name || m.tool_name || "";
 		}
 
 		messages.push(msg);
@@ -108,6 +127,15 @@ function toNative(body) {
 	// Ollama's native endpoint takes sampling params at the top level.
 	for (const k of ["temperature", "top_p", "top_k", "seed", "stop", "num_predict"]) {
 		if (body[k] !== undefined) options[k] = body[k];
+	}
+	// Ollama takes stop as an array; a bare string works on some versions only.
+	if (typeof options.stop === "string") options.stop = [options.stop];
+	// OpenAI clients send max_tokens (or max_completion_tokens), not num_predict.
+	// Without this mapping models.json's maxOutputTokens never reaches Ollama and
+	// a truncated answer is indistinguishable from a finished one.
+	if (options.num_predict === undefined) {
+		const max = body.max_tokens ?? body.max_completion_tokens;
+		if (typeof max === "number" && max > 0) options.num_predict = max;
 	}
 
 	const native = {
@@ -124,14 +152,17 @@ function toNative(body) {
 	if (body.think !== undefined) native.think = body.think;
 	if (body.tools) native.tools = body.tools;
 	if (body.tool_choice) native.tool_choice = body.tool_choice;
+	// Forward keep_alive when the client sets it; otherwise Ollama unloads the
+	// model after its default 5 minutes and the next turn pays a cold load.
+	if (body.keep_alive !== undefined) native.keep_alive = body.keep_alive;
 	return native;
 }
 
 /** Convert Ollama's native response back into the OpenAI shape Pi expects. */
 function toOpenAI(native, model) {
 	const content = native.message?.content ?? "";
-	const toolCalls = (native.message?.tool_calls || []).map((tc, i) => ({
-		id: tc.id || `call_${i}`,
+	const toolCalls = (native.message?.tool_calls || []).map((tc) => ({
+		id: tc.id || `call_${++toolCallSeq}`,
 		type: "function",
 		function: {
 			name: tc.function?.name || "",
@@ -156,7 +187,14 @@ function toOpenAI(native, model) {
 			{
 				index: 0,
 				message,
-				finish_reason: native.done_reason || (toolCalls.length ? "tool_calls" : "stop"),
+				// Ollama reports "stop" even when it called tools. The client
+				// closes the turn on "stop" and never runs the tool, so tool usage
+				// must win. A truncated answer reports "length", not "stop".
+				finish_reason: toolCalls.length
+					? "tool_calls"
+					: native.done_reason === "length"
+						? "length"
+						: "stop",
 			},
 		],
 		usage: {
@@ -171,17 +209,41 @@ const server = createServer(async (req, res) => {
 	const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
 	const isChat = req.method === "POST" && /\/v1\/chat\/completions/.test(url.pathname);
 
+	// If the client goes away, cancel the upstream request. On a single-card box
+	// an abandoned generation otherwise keeps the GPU busy for nobody, and the
+	// next request queues behind it — which looks like a hang after a cancel.
+	const upstreamAbort = new AbortController();
+	res.on("close", () => {
+		if (!res.writableEnded) upstreamAbort.abort();
+	});
+
 	if (!isChat) {
-		// Pass everything else straight through.
-		const body = await readBody(req);
-		const upstream = await fetch(TARGET + req.url, {
-			method: req.method,
-			headers: { "content-type": "application/json" },
-			body: req.method === "GET" || req.method === "HEAD" ? undefined : body,
-		});
-		const text = await upstream.text();
-		res.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") || "application/json" });
-		res.end(text);
+		// Pass everything else straight through. This branch used to have no
+		// try/catch, so a /v1/models probe while Ollama was down was an unhandled
+		// rejection — and Node 22 exits on those.
+		try {
+			const body = await readBody(req);
+			const upstream = await fetch(TARGET + req.url, {
+				method: req.method,
+				headers: { "content-type": "application/json" },
+				body: req.method === "GET" || req.method === "HEAD" ? undefined : body,
+				signal: upstreamAbort.signal,
+			});
+			const text = await upstream.text();
+			res.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") || "application/json" });
+			res.end(text);
+		} catch (err) {
+			if (res.headersSent) {
+				res.end();
+				return;
+			}
+			res.writeHead(502, { "content-type": "application/json" });
+			res.end(
+				JSON.stringify({
+					error: { message: String(err && err.message ? err.message : err), type: "shim_error" },
+				}),
+			);
+		}
 		return;
 	}
 
@@ -194,6 +256,7 @@ const server = createServer(async (req, res) => {
 			method: "POST",
 			headers: { "content-type": "application/json" },
 			body: JSON.stringify(native),
+			signal: upstreamAbort.signal,
 		});
 
 		if (!body.stream) {
@@ -223,6 +286,10 @@ const server = createServer(async (req, res) => {
 		const created = Math.floor(Date.now() / 1000);
 		let usage = null;
 		let sawToolCall = false;
+		let doneReason = null;
+		// Running across events: `call_${i}` restarted at 0 every event, and a
+		// stream index that restarts merges calls that arrive in separate events.
+		let streamToolIndex = 0;
 
 		const decoder = new TextDecoder();
 		let buffer = "";
@@ -245,6 +312,52 @@ const server = createServer(async (req, res) => {
 			res.write(`data: ${JSON.stringify(payload)}\n\n`);
 		};
 
+		// Returns true when the upstream sent an error and the response is finished.
+		const handleEvent = (evt) => {
+			if (evt.error) {
+				res.write(`data: ${JSON.stringify({ error: evt.error })}\n\n`);
+				res.end();
+				return true;
+			}
+			if (evt.message?.content) {
+				sendChunk({ content: evt.message.content }, null);
+			}
+			// Pass reasoning through in the field the client reads. The harness
+			// sets think:false, so this should not fire, but if thinking is ever
+			// enabled the reasoning must not be silently dropped or the answer
+			// text will not match.
+			if (evt.message?.thinking) {
+				sendChunk({ reasoning_content: evt.message.thinking }, null);
+			}
+			if (evt.message?.tool_calls?.length) {
+				sawToolCall = true;
+				const toolCalls = evt.message.tool_calls.map((tc) => ({
+					id: tc.id || `call_${++toolCallSeq}`,
+					type: "function",
+					// The client keys streaming tool-call blocks by `index`.
+					// Without it, each chunk is treated as a separate call and the
+					// arguments never assemble.
+					index: streamToolIndex++,
+					function: {
+						name: tc.function?.name || "",
+						arguments:
+							typeof tc.function?.arguments === "string"
+								? tc.function.arguments
+								: JSON.stringify(tc.function?.arguments || {}),
+					},
+				}));
+				sendChunk({ tool_calls: toolCalls }, null);
+			}
+			if (evt.done) {
+				usage = {
+					prompt_tokens: evt.prompt_eval_count || 0,
+					completion_tokens: evt.eval_count || 0,
+				};
+				doneReason = evt.done_reason ?? null;
+			}
+			return false;
+		};
+
 		while (true) {
 			const { done, value } = await reader.read();
 			if (done) break;
@@ -260,65 +373,35 @@ const server = createServer(async (req, res) => {
 				} catch {
 					continue;
 				}
-				if (evt.error) {
-					res.write(`data: ${JSON.stringify({ error: evt.error })}\n\n`);
-					res.end();
-					return;
-				}
-				if (evt.message?.content) {
-					sendChunk({ content: evt.message.content }, null);
-				}
-				// Pass reasoning through in the field the client reads. The
-				// harness sets think:false, so this should not fire, but if
-				// thinking is ever enabled the reasoning must not be silently
-				// dropped or the answer text will not match.
-				if (evt.message?.thinking) {
-					sendChunk({ reasoning_content: evt.message.thinking }, null);
-				}
-				if (evt.message?.tool_calls?.length) {
-					sawToolCall = true;
-					const toolCalls = evt.message.tool_calls.map((tc, i) => ({
-						id: tc.id || `call_${i}`,
-						type: "function",
-						// The client keys streaming tool-call blocks by `index`.
-						// Without it, each chunk is treated as a separate call
-						// and the arguments never assemble.
-						index: i,
-						function: {
-							name: tc.function?.name || "",
-							arguments:
-								typeof tc.function?.arguments === "string"
-									? tc.function.arguments
-									: JSON.stringify(tc.function?.arguments || {}),
-						},
-					}));
-					sendChunk({ tool_calls: toolCalls }, null);
-				}
-				if (evt.done) {
-					usage = {
-						prompt_tokens: evt.prompt_eval_count || 0,
-						completion_tokens: evt.eval_count || 0,
-					};
-				}
+				if (handleEvent(evt)) return;
 			}
 		}
 
-		// Final chunk carries the finish_reason and the usage, which the
-		// client requires.
-		//
-		// CRITICAL: when the model asked for tools, the finish_reason must be
-		// "tool_calls", not "stop". With "stop" the client treats the turn as
-		// finished and never runs the tool, so the model gets no answer and
-		// the run ends with no output. Verified: the tool ran (the result came
-		// back correctly) but the client still produced nothing, because the
-		// turn had already been closed.
+		// A final NDJSON line without a trailing newline is still an event.
+		const tail = buffer.trim();
+		if (tail) {
+			try {
+				if (handleEvent(JSON.parse(tail))) return;
+			} catch {
+				// A partial trailing fragment is not a usable event.
+			}
+		}
+
+		// Final chunk carries the finish_reason and the usage, which the client
+		// requires. Tool calls must report "tool_calls" (with "stop" the client
+		// closes the turn and never runs the tool); a cut-off answer must report
+		// "length" so truncation is visible instead of looking complete.
 		const finalPayload = {
 			id,
 			object: "chat.completion.chunk",
 			created,
 			model: body.model,
 			choices: [
-				{ index: 0, delta: {}, finish_reason: sawToolCall ? "tool_calls" : "stop" },
+				{
+					index: 0,
+					delta: {},
+					finish_reason: sawToolCall ? "tool_calls" : doneReason === "length" ? "length" : "stop",
+				},
 			],
 			usage: usage
 				? {
@@ -332,6 +415,12 @@ const server = createServer(async (req, res) => {
 		res.write("data: [DONE]\n\n");
 		res.end();
 	} catch (err) {
+		// Once the SSE stream has started, writeHead throws ERR_HTTP_HEADERS_SENT —
+		// inside the catch, which is another unhandled rejection. Just close.
+		if (res.headersSent) {
+			res.end();
+			return;
+		}
 		res.writeHead(502, { "content-type": "application/json" });
 		res.end(JSON.stringify({ error: { message: String(err && err.message ? err.message : err), type: "shim_error" } }));
 	}

@@ -107,7 +107,7 @@ The harness is wired to this grader in `~/.pi/agent/AGENTS.md`:
 
 ```
 verify(spec="~/projects/local-ai-stack/grader/spec_cw_filter.py",
-       candidate="~/projects/local-ai-stack/grader/cw_filter.py")
+       candidate="my_filter.py")
 ```
 
 The rule the harness enforces: **the model must never be the judge of its own

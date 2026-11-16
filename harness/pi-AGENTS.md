@@ -1,7 +1,8 @@
 # Pi — brain1 harness rules
 
 Global context for every Pi session on this box. Kept short on purpose: the
-context window is 8192 tokens and the baseline prompt already costs ~4700.
+context window is 32768 tokens (the shim requests it) and the baseline prompt
+already costs ~4700.
 
 ## Look up the facts, then write the code
 
@@ -45,8 +46,9 @@ measures the real audio output. Exit 0 means every check passed. If it reports
 failures, fix the case named — do not rewrite the file.
 
 `~/projects/local-ai-stack/grader/cw_filter.py` is a known-good reference
-implementation (11/11). Read it for ideas if you are stuck — but verify **your**
-file, not that one.
+implementation (11/11). It exists so a human can prove the grader works. Do
+**not** copy it, and do not submit it to verify — the harness rejects candidate
+paths under `grader/` for exactly that reason.
 
 ## Machine facts
 
@@ -56,5 +58,6 @@ file, not that one.
 - No passwordless sudo
 - Python with numpy/scipy: `~/projects/local-ai-stack/grader/.venv/bin/python3` (system
   python3 has neither; `pip install` is blocked by PEP 668)
-- Context window is **8192** and cannot be raised from Pi (`/v1` ignores
-  `num_ctx`). Measurements: `~/.pi/agent/gate-log.md`
+- Context window is **32768**, set per request by the shim (`/v1` ignores
+  `num_ctx` on its own). Override with `PI_CONTEXT_LIMIT` if the shim changes.
+  Measurements: `~/.pi/agent/gate-log.md`

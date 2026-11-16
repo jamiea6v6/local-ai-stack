@@ -45,7 +45,9 @@
  * MAX_SEARCHES. This mirrors enforce-fetch.ts's MAX_NUDGES.
  */
 
-import { appendFileSync } from "node:fs";
+import { appendFileSync, mkdirSync } from "node:fs";
+import { homedir } from "node:os";
+import { dirname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 
 /** Questions that usually require an external fact. */
@@ -100,8 +102,10 @@ const MAX_NUDGES = 2;
  * a lookup could be answered, and says so instead of forcing the call. Verified
  * facts the model already has still get stated; only the lookup is skipped.
  */
-const CONTEXT_LIMIT = 8192;
-const CONTEXT_ROOM_FOR_LOOKUP = 6500;
+const CONTEXT_LIMIT = Number(process.env.PI_CONTEXT_LIMIT || 32768);
+// Leave room for a search, a fetch, and an answer. Previously a flat 6500 on a
+// hardcoded 8192 window; now the same ~80% fraction of the real window.
+const CONTEXT_ROOM_FOR_LOOKUP = Math.floor(CONTEXT_LIMIT * 0.8);
 
 /**
  * Where gate messages are logged so they can be copied. The TUI renders gate messages in
@@ -109,7 +113,7 @@ const CONTEXT_ROOM_FOR_LOOKUP = 6500;
  * U-01). The model still receives the message either way — `display` only controls
  * rendering, not whether the entry becomes part of the LLM context.
  */
-const LOG_PATH = "~/.pi/agent/gate-log.md";
+const LOG_PATH = join(homedir(), ".pi", "agent", "gate-log.md");
 
 interface SearchGate {
 	searches: number;
@@ -120,6 +124,7 @@ interface SearchGate {
 
 function logGate(kind: string, text: string): void {
 	try {
+		mkdirSync(dirname(LOG_PATH), { recursive: true });
 		appendFileSync(LOG_PATH, `\n## ${kind}\n\n${text}\n`);
 	} catch {
 		// A missing log directory must never break the gate.
