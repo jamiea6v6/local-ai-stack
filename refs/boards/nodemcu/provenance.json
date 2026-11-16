@@ -1,0 +1,36 @@
+{
+  "board": "nodemcu",
+  "sources": [
+    {
+      "bytes": 49143,
+      "cli": "arduino-cli board details --format json",
+      "ref": "esp8266:esp8266:nodemcuv2",
+      "role": "board_properties",
+      "sha256": "0d4d41eceaf4928cfbb35387f7c75ca0f5b8a939e7b22a0969718518acc58b3b"
+    },
+    {
+      "bytes": 1244466,
+      "cache_key": "175e88ee6b7b40378e36",
+      "extraction": "curated",
+      "ref": "esp8266",
+      "role": "logic_v",
+      "sha256": "3a038e2fd3040ad06d95d41b16afc8292090339e9f8e728ce46a83db439cecf1",
+      "url": "https://www.espressif.com/sites/default/files/documentation/0a-esp8266ex_datasheet_en.pdf"
+    },
+    {
+      "bytes": 1647,
+      "location": "~/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/variants/nodemcu/pins_arduino.h",
+      "ref": "variants/nodemcu/pins_arduino.h",
+      "role": "pins_header",
+      "sha256": "c4c9624b5cd95f10fd76c00a098353f91d1eb6da6e5fc34a15e0a35ee5b54dda"
+    },
+    {
+      "bytes": 3101,
+      "location": "~/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/variants/generic/common.h",
+      "ref": "variants/generic/common.h",
+      "role": "pins_header_include",
+      "sha256": "796679378f2e188bf6b0f10e8db6081a88d810def8a4ea6030dd165ad49488f6"
+    }
+  ],
+  "tool": "board_meta.py v1"
+}

@@ -1,0 +1,18 @@
+board: arduino-uno
+display_name: Arduino Uno
+mcu: atmega328p
+platform: avr@1.8.8
+f_cpu_hz: 16000000
+flash_bytes: null
+ram_bytes: 2048
+upload_max_bytes: 32256
+logic_v: 5.0
+logic_v_extraction: curated from the cited datasheet
+frameworks:
+  arduino:
+    coverage: pins+specs
+spec_gaps:
+- flash_bytes
+notes:
+- A6 defined in the variant but beyond NUM_ANALOG_INPUTS (6); not counted
+- A7 defined in the variant but beyond NUM_ANALOG_INPUTS (6); not counted

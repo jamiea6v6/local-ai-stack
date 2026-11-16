@@ -1,0 +1,220 @@
+board: arduino-uno
+display_name: Arduino Uno
+pin_model: named
+pins:
+- name: D0
+  gpio: 0
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D1
+  gpio: 1
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D2
+  gpio: 2
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D3
+  gpio: 3
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D4
+  gpio: 4
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D5
+  gpio: 5
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D6
+  gpio: 6
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D7
+  gpio: 7
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D8
+  gpio: 8
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D9
+  gpio: 9
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: D10
+  gpio: 10
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: SS
+  gpio: 10
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:43
+  notes: []
+- name: D11
+  gpio: 11
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: MOSI
+  gpio: 11
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:44
+  notes: []
+- name: D12
+  gpio: 12
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: MISO
+  gpio: 12
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:45
+  notes: []
+- name: D13
+  gpio: 13
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h (NUM_DIGITAL_PINS=20, NUM_ANALOG_INPUTS=6)
+  notes: []
+- name: LED_BUILTIN
+  gpio: 13
+  kinds:
+  - led
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:54
+  notes: []
+- name: SCK
+  gpio: 13
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:46
+  notes: []
+- name: A0
+  gpio: 14
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:65
+  notes: []
+- name: A1
+  gpio: 15
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:66
+  notes: []
+- name: A2
+  gpio: 16
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:67
+  notes: []
+- name: A3
+  gpio: 17
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:68
+  notes: []
+- name: A4
+  gpio: 18
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:69
+  notes: []
+- name: SDA
+  gpio: 18
+  kinds:
+  - i2c
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:51
+  notes: []
+- name: A5
+  gpio: 19
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:70
+  notes: []
+- name: SCL
+  gpio: 19
+  kinds:
+  - i2c
+  frameworks:
+  - arduino
+  source: variants/standard/pins_arduino.h:52
+  notes: []

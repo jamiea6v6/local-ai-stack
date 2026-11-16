@@ -1,0 +1,19 @@
+board: pico
+display_name: Raspberry Pi Pico
+mcu: rp2040
+platform: null
+f_cpu_hz: 133000000
+flash_bytes: 2097152
+ram_bytes: 270336
+upload_max_bytes: null
+logic_v: 3.3
+logic_v_extraction: curated from the cited datasheet
+frameworks:
+  arduino:
+    coverage: specs
+  circuitpython:
+    coverage: pins
+  micropython:
+    coverage: pins
+spec_gaps: []
+notes: []

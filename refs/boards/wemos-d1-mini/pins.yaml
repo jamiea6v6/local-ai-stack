@@ -1,0 +1,156 @@
+board: wemos-d1-mini
+display_name: LOLIN(WEMOS) D1 R2 & mini
+pin_model: named
+pins:
+- name: D3
+  gpio: 0
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:40
+  notes: []
+- name: TX
+  gpio: 1
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:47
+  notes: []
+- name: D4
+  gpio: 2
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:41
+  notes: []
+- name: LED_BUILTIN
+  gpio: 2
+  kinds:
+  - led
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:35
+  notes: []
+- name: RX
+  gpio: 3
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:46
+  notes: []
+- name: D2
+  gpio: 4
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:39
+  notes: []
+- name: SDA
+  gpio: 4
+  kinds:
+  - i2c
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:32
+  notes: []
+- name: D1
+  gpio: 5
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:38
+  notes: []
+- name: SCL
+  gpio: 5
+  kinds:
+  - i2c
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:33
+  notes: []
+- name: D6
+  gpio: 12
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:43
+  notes: []
+- name: MISO
+  gpio: 12
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/generic/common.h:49
+  notes: []
+- name: D7
+  gpio: 13
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:44
+  notes: []
+- name: MOSI
+  gpio: 13
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/generic/common.h:48
+  notes: []
+- name: D5
+  gpio: 14
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:42
+  notes: []
+- name: SCK
+  gpio: 14
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/generic/common.h:50
+  notes: []
+- name: D8
+  gpio: 15
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:45
+  notes: []
+- name: SS
+  gpio: 15
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/generic/common.h:47
+  notes: []
+- name: D0
+  gpio: 16
+  kinds:
+  - digital
+  frameworks:
+  - arduino
+  source: variants/d1_mini/pins_arduino.h:37
+  notes: []
+- name: A0
+  gpio: 17
+  kinds:
+  - adc
+  frameworks:
+  - arduino
+  source: variants/generic/common.h:56
+  notes: []

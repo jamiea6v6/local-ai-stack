@@ -1,0 +1,46 @@
+{
+  "board": "esp32-devkit",
+  "sources": [
+    {
+      "bytes": 530,
+      "cache_key": "306e2e2267ed2517ee2b",
+      "ref": "ports/esp32/boards/ESP32_GENERIC/board.json",
+      "role": "board_json",
+      "sha256": "7b03b1f64ceb9685adda714ef208dcf28b81d6710eb8f2c085ec555b8f64e8af",
+      "url": "https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/esp32/boards/ESP32_GENERIC/board.json"
+    },
+    {
+      "bytes": 37917,
+      "cache_key": "adda88ba1e2e57ac5377",
+      "extraction": "curated",
+      "ref": "esp32",
+      "role": "logic_v",
+      "sha256": "be97d81aead233191744e7e08f2366c4b5d1350ec45fd757118890d0c31f33fe",
+      "url": "https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32/esp32-devkitc/user_guide.html"
+    },
+    {
+      "bytes": 248,
+      "cache_key": "7d25c1b4f2274f90ab0f",
+      "ref": "ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/mpconfigboard.mk",
+      "role": "mpconfigboard_mk",
+      "sha256": "f99e272f34920a6e1893d4f0b40da1052387edead37aad734cf34154b8ab7e67",
+      "url": "https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/mpconfigboard.mk"
+    },
+    {
+      "bytes": 3370,
+      "cache_key": "c9f86e9a82ed007e24ec",
+      "ref": "ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c",
+      "role": "pins_c",
+      "sha256": "f080ddf9c25d12be746d7992c6595cab2d56caffdaaf245963be542eac1e8571",
+      "url": "https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c"
+    },
+    {
+      "bytes": 760,
+      "location": "~/.platformio/platforms/espressif32@6.13.0/boards/esp32dev.json",
+      "ref": "platforms/espressif32@6.13.0/boards/esp32dev.json",
+      "role": "pio_board",
+      "sha256": "6b05fac8cc0566c814cb0bb5eafc1bd7382273c7228603cf7dfa685bd9fb605b"
+    }
+  ],
+  "tool": "board_meta.py v1"
+}

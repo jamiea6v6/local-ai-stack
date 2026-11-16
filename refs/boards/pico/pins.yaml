@@ -1,0 +1,352 @@
+board: pico
+display_name: Raspberry Pi Pico
+pin_model: named
+pins:
+- name: GP0
+  gpio: 0
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:1
+  notes: []
+- name: GP1
+  gpio: 1
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:2
+  notes: []
+- name: GP2
+  gpio: 2
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:3
+  notes: []
+- name: GP3
+  gpio: 3
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:4
+  notes: []
+- name: GP4
+  gpio: 4
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:5
+  notes: []
+- name: GP5
+  gpio: 5
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:6
+  notes: []
+- name: GP6
+  gpio: 6
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:7
+  notes: []
+- name: GP7
+  gpio: 7
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:8
+  notes: []
+- name: GP8
+  gpio: 8
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:9
+  notes: []
+- name: GP9
+  gpio: 9
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:10
+  notes: []
+- name: GP10
+  gpio: 10
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:11
+  notes: []
+- name: GP11
+  gpio: 11
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:12
+  notes: []
+- name: GP12
+  gpio: 12
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:13
+  notes: []
+- name: GP13
+  gpio: 13
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:14
+  notes: []
+- name: GP14
+  gpio: 14
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:15
+  notes: []
+- name: GP15
+  gpio: 15
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:16
+  notes: []
+- name: GP16
+  gpio: 16
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:17
+  notes: []
+- name: GP17
+  gpio: 17
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:18
+  notes: []
+- name: GP18
+  gpio: 18
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:19
+  notes: []
+- name: GP19
+  gpio: 19
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:20
+  notes: []
+- name: GP20
+  gpio: 20
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:21
+  notes: []
+- name: GP21
+  gpio: 21
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:22
+  notes: []
+- name: GP22
+  gpio: 22
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:23
+  notes: []
+- name: GP23
+  gpio: 23
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:37
+  notes: []
+- name: SMPS_MODE
+  gpio: 23
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:36
+  notes: []
+- name: GP24
+  gpio: 24
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:40
+  notes: []
+- name: VBUS_SENSE
+  gpio: 24
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:39
+  notes: []
+- name: GP25
+  gpio: 25
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:24
+  notes: []
+- name: LED
+  gpio: 25
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:28
+  notes: []
+- name: A0
+  gpio: 26
+  kinds:
+  - adc
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:47
+  notes: []
+- name: GP26
+  gpio: 26
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:25
+  notes: []
+- name: GP26_A0
+  gpio: 26
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:45
+  notes: []
+- name: A1
+  gpio: 27
+  kinds:
+  - adc
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:51
+  notes: []
+- name: GP27
+  gpio: 27
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:26
+  notes: []
+- name: GP27_A1
+  gpio: 27
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:49
+  notes: []
+- name: A2
+  gpio: 28
+  kinds:
+  - adc
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:55
+  notes: []
+- name: GP28
+  gpio: 28
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  - micropython
+  source: https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO/pins.csv:27
+  notes: []
+- name: GP28_A2
+  gpio: 28
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:53
+  notes: []
+- name: A3
+  gpio: 29
+  kinds:
+  - adc
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:57
+  notes: []
+- name: VOLTAGE_MONITOR
+  gpio: 29
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico/pins.c:58
+  notes: []

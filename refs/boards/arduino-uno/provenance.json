@@ -1,0 +1,29 @@
+{
+  "board": "arduino-uno",
+  "sources": [
+    {
+      "bytes": 20000,
+      "cli": "arduino-cli board details --format json",
+      "ref": "arduino:avr:uno",
+      "role": "board_properties",
+      "sha256": "767f9d4d177be8b7a7d1ea8bd20d798d5e74bf754fdd1f47594d606f7248f224"
+    },
+    {
+      "bytes": 417533,
+      "cache_key": "726bdefa0bdd0f22e5bd",
+      "extraction": "curated",
+      "ref": "uno",
+      "role": "logic_v",
+      "sha256": "767b83e74900028871e349cd4055a48fa08b44eb3a38b4ef8bfd6bd0605584d4",
+      "url": "https://docs.arduino.cc/hardware/uno-rev3/"
+    },
+    {
+      "bytes": 6437,
+      "location": "~/.arduino15/packages/arduino/hardware/avr/1.8.8/variants/standard/pins_arduino.h",
+      "ref": "variants/standard/pins_arduino.h",
+      "role": "pins_header",
+      "sha256": "d313845f9916c1f21c8ba9848d40806f5caab52529ad510e81b3f15318441631"
+    }
+  ],
+  "tool": "board_meta.py v1"
+}

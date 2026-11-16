@@ -1,0 +1,47 @@
+{
+  "board": "pico2",
+  "sources": [
+    {
+      "bytes": 3016817,
+      "cache_key": "22c9197af89a82c1cd95",
+      "extraction": "curated",
+      "ref": "pico2",
+      "role": "logic_v",
+      "sha256": "cbcfaf881018c686495a2e53c7bd281e7e0a8217d79447d73eda7c8f74b7f675",
+      "url": "https://datasheets.raspberrypi.com/pico/pico-2-datasheet.pdf"
+    },
+    {
+      "bytes": 208,
+      "cache_key": "48a8517f24f38bd7ab0e",
+      "ref": "ports/raspberrypi/boards/raspberry_pi_pico2/mpconfigboard.mk",
+      "role": "mpconfigboard_mk",
+      "sha256": "1ff787d043c17d3c3bb766eb3cb1f327661b3aa12508c809257a9909937c8c32",
+      "url": "https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico2/mpconfigboard.mk"
+    },
+    {
+      "bytes": 2910,
+      "cache_key": "c975d567e682f7025e75",
+      "ref": "ports/raspberrypi/boards/raspberry_pi_pico2/pins.c",
+      "role": "pins_c",
+      "sha256": "dda4d76964407bca657644098e035c353dfe8ea530e6658c2424098cd2cec0d0",
+      "url": "https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/raspberrypi/boards/raspberry_pi_pico2/pins.c"
+    },
+    {
+      "bytes": 315,
+      "cache_key": "8be357470f444853a82c",
+      "ref": "ports/rp2/boards/RPI_PICO2/pins.csv",
+      "role": "pins_csv",
+      "sha256": "c0ea657d09548764ca817f7d6739f0e617cb901de7bca15cc8079c5668dd63c8",
+      "url": "https://raw.githubusercontent.com/micropython/micropython/v1.24.1/ports/rp2/boards/RPI_PICO2/pins.csv"
+    },
+    {
+      "bytes": 2410,
+      "cache_key": "5af61b846e86851c6804",
+      "ref": "src/boards/include/boards/pico2.h",
+      "role": "sdk_board",
+      "sha256": "6d32916eea833abcef7e7d10321853a5c23eb7366b893aba4d5354d6ddc6b76c",
+      "url": "https://raw.githubusercontent.com/raspberrypi/pico-sdk/2.3.1/src/boards/include/boards/pico2.h"
+    }
+  ],
+  "tool": "board_meta.py v1"
+}

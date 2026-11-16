@@ -1,0 +1,378 @@
+board: esp32-devkit
+display_name: ESP32-DevKitC v4 (WROOM-32E)
+pin_model: named
+pins:
+- name: BOOT0
+  gpio: 0
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:73
+  notes: []
+- name: BUTTON
+  gpio: 0
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:72
+  notes: []
+- name: IO0
+  gpio: 0
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:25
+  notes: []
+- name: IO1
+  gpio: 1
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:37
+  notes:
+  - UART on silkscreen
+- name: TX
+  gpio: 1
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:38
+  notes:
+  - UART on silkscreen
+- name: IO2
+  gpio: 2
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:24
+  notes: []
+- name: IO3
+  gpio: 3
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:35
+  notes:
+  - UART on silkscreen
+- name: RX
+  gpio: 3
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:36
+  notes:
+  - UART on silkscreen
+- name: IO4
+  gpio: 4
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:26
+  notes: []
+- name: IO5
+  gpio: 5
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:29
+  notes: []
+- name: CLK
+  gpio: 6
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:15
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO6
+  gpio: 6
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:16
+  notes:
+  - Pins dedicated to SPI flash
+- name: D0
+  gpio: 7
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:17
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO7
+  gpio: 7
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:18
+  notes:
+  - Pins dedicated to SPI flash
+- name: D1
+  gpio: 8
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:19
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO8
+  gpio: 8
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:20
+  notes:
+  - Pins dedicated to SPI flash
+- name: D2
+  gpio: 9
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:50
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO9
+  gpio: 9
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:51
+  notes:
+  - Pins dedicated to SPI flash
+- name: D3
+  gpio: 10
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:48
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO10
+  gpio: 10
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:49
+  notes:
+  - Pins dedicated to SPI flash
+- name: CMD
+  gpio: 11
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:46
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO11
+  gpio: 11
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:47
+  notes:
+  - Pins dedicated to SPI flash
+- name: IO12
+  gpio: 12
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:55
+  notes: []
+- name: IO13
+  gpio: 13
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:54
+  notes: []
+- name: IO14
+  gpio: 14
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:56
+  notes: []
+- name: IO15
+  gpio: 15
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:23
+  notes: []
+- name: IO16
+  gpio: 16
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:27
+  notes: []
+- name: IO17
+  gpio: 17
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:28
+  notes: []
+- name: IO18
+  gpio: 18
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:30
+  notes: []
+- name: IO19
+  gpio: 19
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:31
+  notes: []
+- name: IO21
+  gpio: 21
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:32
+  notes: []
+- name: IO22
+  gpio: 22
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:41
+  notes: []
+- name: IO23
+  gpio: 23
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:42
+  notes: []
+- name: IO25
+  gpio: 25
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:59
+  notes: []
+- name: IO26
+  gpio: 26
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:58
+  notes: []
+- name: IO27
+  gpio: 27
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:57
+  notes: []
+- name: IO32
+  gpio: 32
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:61
+  notes: []
+- name: IO33
+  gpio: 33
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:60
+  notes: []
+- name: I34
+  gpio: 34
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:65
+  notes:
+  - Input-only pins, VP/VN on silkscreen
+- name: I35
+  gpio: 35
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:64
+  notes:
+  - Input-only pins, VP/VN on silkscreen
+- name: I36
+  gpio: 36
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:68
+  notes:
+  - Input-only pins, VP/VN on silkscreen
+- name: VP
+  gpio: 36
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:69
+  notes:
+  - Input-only pins, VP/VN on silkscreen
+- name: I39
+  gpio: 39
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:66
+  notes:
+  - Input-only pins, VP/VN on silkscreen
+- name: VN
+  gpio: 39
+  kinds:
+  - digital
+  frameworks:
+  - circuitpython
+  source: https://raw.githubusercontent.com/adafruit/circuitpython/9.2.1/ports/espressif/boards/espressif_esp32_devkitc_v4_wroom_32e/pins.c:67
+  notes:
+  - Input-only pins, VP/VN on silkscreen

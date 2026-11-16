@@ -1,0 +1,36 @@
+{
+  "board": "wemos-d1-mini",
+  "sources": [
+    {
+      "bytes": 48794,
+      "cli": "arduino-cli board details --format json",
+      "ref": "esp8266:esp8266:d1_mini",
+      "role": "board_properties",
+      "sha256": "a6d277728b7dfe565d29e0ca5d71077378072beeb3e72041c2cb61811a75d13e"
+    },
+    {
+      "bytes": 11218,
+      "cache_key": "8621bbba79fbcc39a51c",
+      "extraction": "curated",
+      "ref": "wemos",
+      "role": "logic_v",
+      "sha256": "45169cd34bbbcae3cff65084f04cb0adf6cdc16e0c5ca56c233e09da227cc005",
+      "url": "https://www.wemos.cc/en/latest/d1/d1_mini.html"
+    },
+    {
+      "bytes": 1593,
+      "location": "~/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/variants/d1_mini/pins_arduino.h",
+      "ref": "variants/d1_mini/pins_arduino.h",
+      "role": "pins_header",
+      "sha256": "d2034377294f91c7f840a5e250737ac6c523585cfa0a0f7bf8e50d48a66fff63"
+    },
+    {
+      "bytes": 3101,
+      "location": "~/.arduino15/packages/esp8266/hardware/esp8266/3.1.2/variants/generic/common.h",
+      "ref": "variants/generic/common.h",
+      "role": "pins_header_include",
+      "sha256": "796679378f2e188bf6b0f10e8db6081a88d810def8a4ea6030dd165ad49488f6"
+    }
+  ],
+  "tool": "board_meta.py v1"
+}

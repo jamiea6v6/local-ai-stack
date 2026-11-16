@@ -1,0 +1,19 @@
+board: pico2
+display_name: Raspberry Pi Pico 2
+mcu: rp2350
+platform: null
+f_cpu_hz: null
+flash_bytes: 4194304
+ram_bytes: null
+upload_max_bytes: null
+logic_v: 3.3
+logic_v_extraction: curated from the cited datasheet
+frameworks:
+  circuitpython:
+    coverage: pins
+  micropython:
+    coverage: pins
+spec_gaps:
+- f_cpu_hz
+- ram_bytes
+notes: []
