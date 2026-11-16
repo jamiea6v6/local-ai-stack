@@ -19,7 +19,7 @@ the same commit.
 
 | ID | Item | Done when | State |
 |---|---|---|---|
-| I1 | This workplan + recovery protocol | file committed, push succeeds | in progress |
+| I1 | This workplan + recovery protocol | file committed, push succeeds | done |
 | I2 | Board metadata extractor `tools/board_meta.py` | generates `pins.yaml` + `specs.yaml` + `provenance.json` for d1_mini, nodemcu, uno, pico, pico2, esp32-devkit from real core files; `--check` re-verifies sha256 | pending |
 | I3 | `bootstrap.sh` + `verify-stack.sh` (P106/Debian 13) | fresh SkyNet run installs/verifies all pieces; a second run is a no-op; `verify-stack.sh` prints PASS/FAIL per check | pending |
 | I4 | Harness seam: `verify` accepts a project dir; routing + env paths | a project dir runs the three MCU gates; a candidate file still works; no absolute host paths in `pi-AGENTS.md` | pending |
@@ -57,4 +57,4 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
 - Bench answers that unblock the worked example: BME280 address (0x76 vs 0x77), VMA203 3.3 V logic.
 
 ## Log
-- 2026-11-16 — I1 started (workplan created).
+- 2026-11-16 — I1 done (commit e03322c). Next: I2 board metadata extractor.
