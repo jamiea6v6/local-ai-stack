@@ -32,12 +32,12 @@ docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 ```bash
 git clone <this repo> ~/projects/local-ai-stack
 cd ~/projects/local-ai-stack
-./bootstrap.sh          # coming — Wednesday
-./verify-stack.sh       # coming — Wednesday; prints PASS/FAIL per check
+./bootstrap.sh          # idempotent; installs Node/Pi/shim/arduino-cli/venv user-local
+./verify-stack.sh       # read-only; prints PASS/FAIL per check
 ```
 
-Until `bootstrap.sh` lands, the manual sequence is in `MANIFEST.md` §2–3. The short version:
-NVIDIA driver **550.163.01** → Ollama **0.32.15** → Node **22** in `~/.local/node` → Pi **1.1.0** →
+The scripts automate the manual sequence in `MANIFEST.md` §2–3. The short version:
+NVIDIA driver **550.163.01** → Ollama **0.32.15+** → Node **22** in `~/.local/node` → Pi **1.4.0** →
 copy `harness/` into `~/.pi/agent/` → install the shim unit (rewrite its `ExecStart` to this repo) →
 pull `gemma4:e4b-it-qat` → `apt install libportaudio2`.
 

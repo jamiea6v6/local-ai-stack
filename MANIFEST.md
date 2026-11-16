@@ -22,9 +22,9 @@ Source of truth for the live stack: `brain1` (address omitted), Debian 13.
 | GPU | NVIDIA P106-100, **6144 MiB** | GP106, compute_cap 6.1, **no display outputs**, no tensor cores, no native FP16 |
 | Driver | **550.163.01** | see §2 — the number that looks wrong but isn't |
 | Model | `gemma4:e4b-it-qat` (6.1 GB) | QAT build, ~30 tok/s, the daily driver |
-| Pi | **1.1.0** (managed install, `~/.pi/agent`) | `install/current-version` |
+| Pi | **1.4.0** (managed install, `~/.pi/agent`) | `install/current-version` |
 | Node | **v22.20.0** at `~/.local/node` | Debian's nodejs is 20.19.2 and ships no npm |
-| Ollama | **0.32.15** | `127.0.0.1:11434` |
+| Ollama | **0.32.15+** (0.40.12 verified) | `127.0.0.1:11434` |
 | Python | 3.13.5 | system python is externally managed (PEP 668) |
 
 ---
@@ -157,16 +157,13 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 
 ## 5. Known drift risk — read before deploying
 
-**The running shim on brain1 is NOT this copy.** The live unit's `ExecStart` points at
-The live unit's `ExecStart` still points at an older checkout; **this repo's `tools/` copy is the
-canonical source going forward**.
+**The running shim on brain1 was NOT this copy.** Its unit's `ExecStart` still pointed at an older
+checkout; **this repo's `tools/` copy is the canonical source going forward**.
 
-`bootstrap.sh` must therefore: (a) install this copy, (b) rewrite the unit's `ExecStart` to point at
-the kit's path, (c) restart the shim, (d) verify `:11435/v1/models` answers and a completion round-trips.
-
-Until then, the two copies can drift. The sha256 table above is the detector — `verify-stack.sh`
-should compare the running script's hash against `tools/ollama-v1-shim.mjs` and fail loudly on a
-mismatch.
+`bootstrap.sh` therefore: (a) installs this copy, (b) rewrites the unit's `ExecStart` to this repo's
+path, (c) restarts the shim, (d) checks that `:11435/v1/models` answers. `verify-stack.sh` reads the
+deployed unit's `ExecStart`, hashes the script it names, and fails if it differs from
+`tools/ollama-v1-shim.mjs` — the detector for the two-copies drift.
 
 ---
 
@@ -174,8 +171,7 @@ mismatch.
 
 | Missing | Why it matters | When |
 |---|---|---|
-| `bootstrap.sh` | installs driver/ollama/node/pi/harness/shim/model/venv idempotently | Wednesday |
-| `verify-stack.sh` | proves the stack: Vulkan, window, VRAM, generation, extensions loaded, grader run | Wednesday |
+| `bootstrap.sh`, `verify-stack.sh` | install + prove: node/pi/harness/shim/arduino/venv, PASS/FAIL per check | done 2026-11-16 |
 | `DECK.md` | the explainable presentation (house deck format: `## Slide N —`) | Thursday |
 | the grader example | `grader/` now holds `spec_cw_filter.py` + `stub_pyaudio.py` + `mutants/` (moved in from the old `cw-dsp` repo) | done |
 | updated test suite | `tests/LOCAL_AGENT_TEST_SUITE.md` is a snapshot; its harness refs are stale | Sunday/Monday |
