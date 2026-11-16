@@ -25,6 +25,7 @@ ESP_CORE="esp8266:esp8266@3.1.2"
 ESP_INDEX="https://arduino.esp8266.com/stable/package_esp8266com_index.json"
 NUMPY_VERSION=2.5.5
 SCIPY_VERSION=1.18.1
+PYYAML_VERSION=6.0.3
 LIBS=("Adafruit BME280 Library@2.3.0" "LiquidCrystal@1.0.7" "LiquidCrystal_I2C@2.0.0")
 
 DRY=0
@@ -389,12 +390,13 @@ head_ "grader venv"
 VENV="$SCRIPT_DIR/grader/.venv"
 if [ "$SKIP_VENV" = 1 ]; then
   say "skipped (--skip-venv)"
-elif [ -x "$VENV/bin/python" ] && "$VENV/bin/python" -c 'import numpy, scipy' >/dev/null 2>&1; then
+elif [ -x "$VENV/bin/python" ] && "$VENV/bin/python" -c 'import numpy, scipy, yaml' >/dev/null 2>&1; then
   ok "venv with numpy $( "$VENV/bin/python" -c 'import numpy;print(numpy.__version__)' )"
 else
-  act "create $VENV and install numpy==$NUMPY_VERSION scipy==$SCIPY_VERSION"
+  act "create $VENV and install numpy==$NUMPY_VERSION scipy==$SCIPY_VERSION pyyaml==$PYYAML_VERSION"
   run python3 -m venv "$VENV"
-  run "$VENV/bin/pip" install --disable-pip-version-check -q "numpy==$NUMPY_VERSION" "scipy==$SCIPY_VERSION"
+  run "$VENV/bin/pip" install --disable-pip-version-check -q \
+    "numpy==$NUMPY_VERSION" "scipy==$SCIPY_VERSION" "pyyaml==$PYYAML_VERSION"
 fi
 
 # ---------------------------------------------------------------- system libs

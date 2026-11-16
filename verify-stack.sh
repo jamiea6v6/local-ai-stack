@@ -58,8 +58,8 @@ fi
 
 # 2 node
 NODE_BIN=""
-if command -v node >/dev/null 2>&1; then NODE_BIN=$(command -v node)
-elif [ -x "$HOME/.local/node/bin/node" ]; then NODE_BIN="$HOME/.local/node/bin/node"; fi
+if [ -x "$HOME/.local/node/bin/node" ]; then NODE_BIN="$HOME/.local/node/bin/node"
+elif command -v node >/dev/null 2>&1; then NODE_BIN=$(command -v node); fi
 if [ -n "$NODE_BIN" ]; then
   V=$("$NODE_BIN" --version | sed 's/^v//')
   if ver_ge "$V" "$NODE_MIN"; then p "node $V"; else f "node $V < $NODE_MIN"; fi
@@ -277,9 +277,11 @@ else
 fi
 
 # 9 board maps
+BOARD_PY="$SCRIPT_DIR/grader/.venv/bin/python"
+[ -x "$BOARD_PY" ] || BOARD_PY=python3
 if [ -f "$SCRIPT_DIR/tools/board_meta.py" ] && [ -d "$SCRIPT_DIR/refs/boards" ]; then
   if [ -z "$CLI" ]; then s "board maps: arduino-cli missing"
-  elif python3 "$SCRIPT_DIR/tools/board_meta.py" --check >/tmp/verify-board-maps.$$ 2>&1; then
+  elif "$BOARD_PY" "$SCRIPT_DIR/tools/board_meta.py" --check >/tmp/verify-board-maps.$$ 2>&1; then
     p "board maps: $(grep -c '^OK' /tmp/verify-board-maps.$$) boards verified"
     rm -f /tmp/verify-board-maps.$$
   else
@@ -296,7 +298,7 @@ if [ -x "$GV" ] && "$GV" -c 'import numpy, scipy' >/dev/null 2>&1; then
   if printf '%s' "$out" | grep "11/11 checks passed" >/dev/null; then p "grader 11/11"
   else f "grader did not report 11/11"; fi
 else
-  f "grader venv missing numpy/scipy"
+  f "grader venv missing numpy/scipy (board_meta also needs pyyaml)"
 fi
 
 # 11 mcu domain gates

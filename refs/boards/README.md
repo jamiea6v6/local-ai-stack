@@ -3,6 +3,8 @@
 `pins.yaml` and `specs.yaml` here are produced by `tools/board_meta.py` from real toolchain
 sources, and `provenance.json` records the sha256 of every input. Nothing is typed from memory.
 
+Requires `PyYAML` (system `python3-yaml`, or `pyyaml` from `bootstrap.sh`'s grader venv).
+
 This is the **exact-lookup** layer. Prose retrieval (RAG) is a separate, later layer; pin numbers
 must never come from an embedding search.
 
