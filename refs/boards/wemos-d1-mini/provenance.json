@@ -6,7 +6,7 @@
       "cli": "arduino-cli board details --format json",
       "ref": "esp8266:esp8266:d1_mini",
       "role": "board_properties",
-      "sha256": "a6d277728b7dfe565d29e0ca5d71077378072beeb3e72041c2cb61811a75d13e"
+      "sha256": "67306d1b974f6b635c3d7db7fbdc9b329133a945720bd0ac08ed4a575a53ad41"
     },
     {
       "bytes": 11218,

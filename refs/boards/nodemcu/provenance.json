@@ -6,7 +6,7 @@
       "cli": "arduino-cli board details --format json",
       "ref": "esp8266:esp8266:nodemcuv2",
       "role": "board_properties",
-      "sha256": "0d4d41eceaf4928cfbb35387f7c75ca0f5b8a939e7b22a0969718518acc58b3b"
+      "sha256": "2918d8290861fc3054d435431308b82bc5f5fc6f71b6e70fdf7c95f7b708ea75"
     },
     {
       "bytes": 1244466,

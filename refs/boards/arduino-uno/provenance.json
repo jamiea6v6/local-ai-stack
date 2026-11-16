@@ -6,7 +6,7 @@
       "cli": "arduino-cli board details --format json",
       "ref": "arduino:avr:uno",
       "role": "board_properties",
-      "sha256": "767f9d4d177be8b7a7d1ea8bd20d798d5e74bf754fdd1f47594d606f7248f224"
+      "sha256": "692ae2aebc6b9dd31e73c0610e29fc7ebbf1ed3863692cdef0da31f96363fa03"
     },
     {
       "bytes": 417533,

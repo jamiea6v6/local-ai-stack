@@ -23,8 +23,9 @@ ARDUINO15_DIR and PLATFORMIO_CORE_DIR are honoured; defaults are ~/.arduino15
 and ~/.platformio. Remote files are cached in ~/.cache/board_meta.
 Requires PyYAML (Debian: python3-yaml).
 
-Note: `arduino-cli board details` embeds extra.time.local/utc in its JSON, so the
-provenance digest deliberately excludes those keys; everything else is hashed.
+Note: `arduino-cli board details` embeds extra.time.local/utc and absolute toolchain
+paths (~/.arduino15/..., the arduino-cli binary path) in its JSON. The provenance
+digest excludes those, so the same core version hashes identically on any host.
 """
 
 import argparse
@@ -179,13 +180,18 @@ def arduino_cli():
 
 
 def cli_digest(details):
+    def portable(entry):
+        if entry.startswith("extra.time."):
+            return False
+        _, _, value = entry.partition("=")
+        return not (value.startswith("/") or value.startswith("~"))
+
     doc = {
         "fqbn": details.get("fqbn"),
         "name": details.get("name"),
         "platform": details.get("platform"),
         "build_properties": sorted(
-            x for x in (details.get("build_properties") or [])
-            if not x.startswith("extra.time.")
+            x for x in (details.get("build_properties") or []) if portable(x)
         ),
     }
     return sha256(json.dumps(doc, sort_keys=True, separators=(",", ":")).encode())
@@ -368,13 +374,13 @@ def pio_adapter(remote_url, board_id):
         data = fetch(url, REFRESH)
         src = [remote_source(data, "pio_board", f"boards/{board_id}.json", url)]
     else:
-        path = None
-        for cand in sorted(PIO_DATA.glob("platforms/espressif32*/boards/" + board_id + ".json")):
-            path = cand
+        cands = sorted(PIO_DATA.glob("platforms/espressif32*/boards/" + board_id + ".json"))
+        plain = [c for c in cands if "@" not in c.parent.parent.name]
+        path = (plain or cands)[-1] if cands else None
         if path is None:
             raise SystemExit(f"PlatformIO board file not installed: {board_id}")
         s, data = local_source(path, "pio_board",
-                               f"platforms/{path.parent.parent.name}/boards/{path.name}",
+                               f"platforms/espressif32/boards/{path.name}",
                                PIO_DATA, "~/.platformio")
         src = [s]
     d = json.loads(data)
@@ -571,6 +577,12 @@ def verify_source(s):
         return None
     else:
         p = Path(str(s["location"]).replace("~", str(Path.home()), 1))
+        if not p.exists() and s.get("role") == "pio_board":
+            cands = sorted((Path.home() / ".platformio" / "platforms").glob(
+                "espressif32*/boards/" + p.name))
+            plain = [c for c in cands if "@" not in c.parent.parent.name]
+            if plain or cands:
+                p = (plain or cands)[-1]
         if not p.exists():
             return f"MISSING {s['location']}"
         data = p.read_bytes()
@@ -607,6 +619,21 @@ def check(out_dir):
     return 1 if failures else 0
 
 
+def seed_cache(out_dir):
+    urls = set()
+    for prov_path in sorted(out_dir.glob("*/provenance.json")):
+        prov = json.loads(prov_path.read_text())
+        for s in prov["sources"]:
+            if "url" in s:
+                urls.add(s["url"])
+    fetched = 0
+    for url in sorted(urls):
+        if not (CACHE / cache_key(url)).exists():
+            fetch(url)
+            fetched += 1
+    print(f"cache: {len(urls)} remote sources, {fetched} fetched")
+
+
 def main():
     global REFRESH
     ap = argparse.ArgumentParser()
@@ -614,11 +641,15 @@ def main():
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--check", action="store_true")
     ap.add_argument("--refresh", action="store_true")
+    ap.add_argument("--seed-cache", action="store_true")
     ap.add_argument("--out", default=str(OUT_DEFAULT))
     args = ap.parse_args()
     REFRESH = args.refresh
     out = Path(args.out).expanduser().resolve()
 
+    if args.seed_cache:
+        seed_cache(out)
+        raise SystemExit(0)
     if args.check:
         raise SystemExit(check(out))
     ids = sorted(BOARDS) if args.all or not args.board else sorted(set(args.board))

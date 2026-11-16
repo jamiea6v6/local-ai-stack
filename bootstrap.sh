@@ -176,8 +176,11 @@ fi
 # ---------------------------------------------------------------- pi binary
 head_ "Pi $PI_VERSION"
 if [ "$SKIP_PI" = 0 ]; then
-  if command -v pi >/dev/null 2>&1 && [ "$(pi --version 2>/dev/null | head -1)" = "$PI_VERSION" ]; then
-    ok "pi $PI_VERSION at $(command -v pi)"
+  PI_BIN=""
+  if command -v pi >/dev/null 2>&1; then PI_BIN=$(command -v pi)
+  elif [ -x "$HOME/.local/bin/pi" ]; then PI_BIN="$HOME/.local/bin/pi"; fi
+  if [ -n "$PI_BIN" ] && [ "$("$PI_BIN" --version 2>/dev/null | head -1)" = "$PI_VERSION" ]; then
+    ok "pi $PI_VERSION at $PI_BIN"
   else
     command -v npm >/dev/null 2>&1 || die "npm not found (install node first)"
     REL="$PI_HOME/install/releases/$PI_VERSION"
@@ -397,6 +400,14 @@ else
   run python3 -m venv "$VENV"
   run "$VENV/bin/pip" install --disable-pip-version-check -q \
     "numpy==$NUMPY_VERSION" "scipy==$SCIPY_VERSION" "pyyaml==$PYYAML_VERSION"
+fi
+
+# seed the board_meta remote cache (refs are already generated in the repo)
+if [ "$SKIP_PIO" = 0 ] && [ -x "$SCRIPT_DIR/grader/.venv/bin/python" ]; then
+  if "$SCRIPT_DIR/grader/.venv/bin/python" -c 'import yaml' >/dev/null 2>&1; then
+    run "$SCRIPT_DIR/grader/.venv/bin/python" "$SCRIPT_DIR/tools/board_meta.py" --seed-cache \
+      || warn "board_meta cache seed failed"
+  fi
 fi
 
 # ---------------------------------------------------------------- system libs
