@@ -132,6 +132,10 @@ if [ -z "$NODE_BIN" ]; then
   fi
 fi
 
+if [ -n "$NODE_BIN" ]; then
+  PATH="$(dirname "$NODE_BIN"):$PATH"; export PATH
+fi
+
 # ---------------------------------------------------------------- pi config
 head_ "Pi harness config"
 PI_HOME="$HOME/.pi/agent"
