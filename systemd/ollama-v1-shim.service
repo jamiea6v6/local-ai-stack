@@ -1,0 +1,15 @@
+[Unit]
+Description=Ollama /v1 shim that honours num_ctx for Pi (brain1)
+After=network.target
+
+[Service]
+Type=simple
+Environment=OLLAMA_SHIM_PORT=11435
+Environment=OLLAMA_SHIM_TARGET=http://127.0.0.1:11434
+Environment=OLLAMA_SHIM_CTX=32768
+ExecStart=%h/.local/node/bin/node %h/projects/local-ai-stack/tools/ollama-v1-shim.mjs
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=default.target

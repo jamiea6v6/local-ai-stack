@@ -1,0 +1,38 @@
+{
+  "providers": {
+    "ollama": {
+      "baseUrl": "http://127.0.0.1:11435/v1",
+      "api": "openai-completions",
+      "apiKey": "ollama",
+      "models": [
+        {
+          "id": "gemma4:e4b-it-qat",
+          "name": "Gemma 4 E4B QAT (6.1GB, ~30 tok/s, non-reasoning)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768,
+          "samplingParams": {
+            "temperature": 0.2,
+            "top_p": 0.9
+          },
+          "maxOutputTokens": 2048
+        },
+        {
+          "id": "llama3.2:3b",
+          "name": "Llama 3.2 3B (fast, unreliable tool use)",
+          "reasoning": false,
+          "input": [
+            "text"
+          ],
+          "contextWindow": 32768,
+          "samplingParams": {
+            "temperature": 0.2,
+            "top_p": 0.9
+          }
+        }
+      ]
+    }
+  }
+}

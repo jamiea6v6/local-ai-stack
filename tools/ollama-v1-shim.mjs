@@ -1,0 +1,342 @@
+#!/usr/bin/env node
+/**
+ * ollama-v1-shim — give Pi a working context window on brain1.
+ *
+ * The problem: brain1's Ollama serves the OpenAI-compatible endpoint at
+ * /v1, and that endpoint IGNORES num_ctx. Verified on this box:
+ *
+ *     POST /v1/chat/completions  {"options":{"num_ctx":32768}}
+ *       -> server still reports context_length 8192
+ *
+ * The native endpoint HONOURS it, even against the server's own env cap:
+ *
+ *     POST /api/generate  {"options":{"num_ctx":32768}}
+ *       -> server reports context_length 32768, VRAM 4314 MiB of 6144
+ *
+ * So the window is reachable, it just is not reachable through /v1.
+ *
+ * This shim sits between Pi and Ollama. It accepts Pi's /v1 requests, and
+ * forwards them to the native /api/chat endpoint with num_ctx injected.
+ * Responses are converted back to the OpenAI shape Pi expects.
+ *
+ * Why bother, rather than just raising the server's env var:
+ *   - the env var lives in a root-owned systemd drop-in, and brain1 has no
+ *     passwordless sudo, so it needs a privileged user
+ *   - the native endpoint's per-request num_ctx works right now, with no
+ *     service restart and no change to the running Ollama
+ *   - VRAM cost is measured and small: 8192 -> 4086 MiB, 32768 -> 4314 MiB
+ *     (+228 MiB of the 6144 MiB card). The KV rate is ~9.5 MiB per 1k tokens.
+ *
+ * It is deliberately small and deliberately a shim rather than a replacement:
+ * everything except the chat path is passed straight through to Ollama.
+ *
+ * Run:  node ollama-v1-shim.mjs            # listens on 127.0.0.1:11435
+ * Env:  OLLAMA_SHIM_PORT   listen port          (default 11435)
+ *       OLLAMA_SHIM_TARGET upstream base URL    (default http://127.0.0.1:11434)
+ *       OLLAMA_SHIM_CTX    context to request  (default 32768)
+ */
+
+import { createServer } from "node:http";
+
+const PORT = Number(process.env.OLLAMA_SHIM_PORT || 11435);
+const TARGET = process.env.OLLAMA_SHIM_TARGET || "http://127.0.0.1:11434";
+const CTX = Number(process.env.OLLAMA_SHIM_CTX || 32768);
+
+async function readBody(req) {
+	const chunks = [];
+	for await (const c of req) chunks.push(c);
+	return Buffer.concat(chunks).toString("utf8");
+}
+
+/** Convert an OpenAI-style request body into Ollama's native /api/chat body. */
+function toNative(body) {
+	const messages = [];
+
+	for (const m of body.messages || []) {
+		const role = m.role === "assistant" ? "assistant" : m.role === "tool" ? "tool" : m.role === "system" ? "system" : "user";
+		const content =
+			typeof m.content === "string"
+				? m.content
+				: Array.isArray(m.content)
+					? m.content.map((c) => c.text || "").join("\n")
+					: "";
+
+		const msg = { role, content };
+
+		// CRITICAL: the assistant's tool_calls must be carried through. A tool
+		// result is meaningless without the call it answers — Ollama pairs them
+		// by matching the call's function name. Dropping them makes the model
+		// blind to what its tools returned, and it loops on the same search
+		// forever. This was measured: 196 messages of assistant/tool pairs with
+		// no tool_calls, and the model re-ran the same websearch 20 times.
+		//
+		// ALSO CRITICAL: Ollama's native API wants `arguments` as a JSON
+		// OBJECT, not a string. OpenAI's wire format uses a string. Passing the
+		// string through makes Ollama reject the whole request with
+		// "Value looks like object, but can't find closing '}' symbol", and the
+		// model never sees the tool result.
+		if (Array.isArray(m.tool_calls) && m.tool_calls.length) {
+			msg.tool_calls = m.tool_calls.map((tc) => {
+				let args = tc.function?.arguments;
+				if (typeof args === "string") {
+					try {
+						args = JSON.parse(args);
+					} catch {
+						args = {};
+					}
+				}
+				return {
+					function: {
+						name: tc.function?.name || "",
+						arguments: args && typeof args === "object" ? args : {},
+					},
+				};
+			});
+			// Ollama wants an empty content string alongside tool_calls.
+			msg.content = content || "";
+		}
+
+		// A tool result carries the call's name so Ollama can pair it.
+		if (role === "tool" && m.tool_call_id) {
+			msg.tool_name = m.name || m.tool_name || "";
+		}
+
+		messages.push(msg);
+	}
+
+	const options = { ...(body.options || {}), num_ctx: CTX };
+	// Ollama's native endpoint takes sampling params at the top level.
+	for (const k of ["temperature", "top_p", "top_k", "seed", "stop", "num_predict"]) {
+		if (body[k] !== undefined) options[k] = body[k];
+	}
+
+	const native = {
+		model: body.model,
+		messages,
+		stream: Boolean(body.stream),
+		options,
+	};
+	// `think` is an Ollama-native extension that the /v1 endpoint honours but
+	// the native endpoint takes at the TOP level, not inside options. Without
+	// it, gemma4 emits "thinking" chunks, which the client then has to parse
+	// as reasoning — and the harness's think-control sets think:false
+	// precisely to stop that. Dropping it silently re-enabled thinking.
+	if (body.think !== undefined) native.think = body.think;
+	if (body.tools) native.tools = body.tools;
+	if (body.tool_choice) native.tool_choice = body.tool_choice;
+	return native;
+}
+
+/** Convert Ollama's native response back into the OpenAI shape Pi expects. */
+function toOpenAI(native, model) {
+	const content = native.message?.content ?? "";
+	const toolCalls = (native.message?.tool_calls || []).map((tc, i) => ({
+		id: tc.id || `call_${i}`,
+		type: "function",
+		function: {
+			name: tc.function?.name || "",
+			// Ollama returns arguments as an object; the OpenAI wire format
+			// expects a JSON string. Serialise it here.
+			arguments:
+				typeof tc.function?.arguments === "string"
+					? tc.function.arguments
+					: JSON.stringify(tc.function?.arguments || {}),
+		},
+	}));
+
+	const message = { role: "assistant", content: toolCalls.length ? null : content };
+	if (toolCalls.length) message.tool_calls = toolCalls;
+
+	return {
+		id: `chatcmpl-${native.created_at || Date.now()}`,
+		object: "chat.completion",
+		created: Math.floor(Date.now() / 1000),
+		model: model || native.model,
+		choices: [
+			{
+				index: 0,
+				message,
+				finish_reason: native.done_reason || (toolCalls.length ? "tool_calls" : "stop"),
+			},
+		],
+		usage: {
+			prompt_tokens: native.prompt_eval_count || 0,
+			completion_tokens: native.eval_count || 0,
+			total_tokens: (native.prompt_eval_count || 0) + (native.eval_count || 0),
+		},
+	};
+}
+
+const server = createServer(async (req, res) => {
+	const url = new URL(req.url, `http://127.0.0.1:${PORT}`);
+	const isChat = req.method === "POST" && /\/v1\/chat\/completions/.test(url.pathname);
+
+	if (!isChat) {
+		// Pass everything else straight through.
+		const body = await readBody(req);
+		const upstream = await fetch(TARGET + req.url, {
+			method: req.method,
+			headers: { "content-type": "application/json" },
+			body: req.method === "GET" || req.method === "HEAD" ? undefined : body,
+		});
+		const text = await upstream.text();
+		res.writeHead(upstream.status, { "content-type": upstream.headers.get("content-type") || "application/json" });
+		res.end(text);
+		return;
+	}
+
+	try {
+		const raw = await readBody(req);
+		const body = JSON.parse(raw || "{}");
+		const native = toNative(body);
+
+		const upstream = await fetch(`${TARGET}/api/chat`, {
+			method: "POST",
+			headers: { "content-type": "application/json" },
+			body: JSON.stringify(native),
+		});
+
+		if (!body.stream) {
+			const nativeJson = await upstream.json();
+			if (nativeJson.error) {
+				res.writeHead(500, { "content-type": "application/json" });
+				res.end(JSON.stringify({ error: nativeJson.error }));
+				return;
+			}
+			res.writeHead(200, { "content-type": "application/json" });
+			res.end(JSON.stringify(toOpenAI(nativeJson, body.model)));
+			return;
+		}
+
+		// Streaming path. The client requires SSE chunks that carry a
+		// finish_reason, otherwise it errors with "Stream ended without
+		// finish_reason". Ollama's native endpoint streams NDJSON, so each
+		// line is converted to an OpenAI-style SSE chunk and the last one
+		// carries the finish_reason.
+		res.writeHead(200, {
+			"content-type": "text/event-stream",
+			"cache-control": "no-cache",
+			connection: "keep-alive",
+		});
+
+		const id = `chatcmpl-${Date.now()}`;
+		const created = Math.floor(Date.now() / 1000);
+		let usage = null;
+		let sawToolCall = false;
+
+		const decoder = new TextDecoder();
+		let buffer = "";
+		const reader = upstream.body.getReader();
+
+		const sendChunk = (delta, finishReason) => {
+			const payload = {
+				id,
+				object: "chat.completion.chunk",
+				created,
+				model: body.model,
+				choices: [
+					{
+						index: 0,
+						delta,
+						finish_reason: finishReason ?? null,
+					},
+				],
+			};
+			res.write(`data: ${JSON.stringify(payload)}\n\n`);
+		};
+
+		while (true) {
+			const { done, value } = await reader.read();
+			if (done) break;
+			buffer += decoder.decode(value, { stream: true });
+			const lines = buffer.split("\n");
+			buffer = lines.pop() ?? "";
+			for (const line of lines) {
+				const trimmed = line.trim();
+				if (!trimmed) continue;
+				let evt;
+				try {
+					evt = JSON.parse(trimmed);
+				} catch {
+					continue;
+				}
+				if (evt.error) {
+					res.write(`data: ${JSON.stringify({ error: evt.error })}\n\n`);
+					res.end();
+					return;
+				}
+				if (evt.message?.content) {
+					sendChunk({ content: evt.message.content }, null);
+				}
+				// Pass reasoning through in the field the client reads. The
+				// harness sets think:false, so this should not fire, but if
+				// thinking is ever enabled the reasoning must not be silently
+				// dropped or the answer text will not match.
+				if (evt.message?.thinking) {
+					sendChunk({ reasoning_content: evt.message.thinking }, null);
+				}
+				if (evt.message?.tool_calls?.length) {
+					sawToolCall = true;
+					const toolCalls = evt.message.tool_calls.map((tc, i) => ({
+						id: tc.id || `call_${i}`,
+						type: "function",
+						// The client keys streaming tool-call blocks by `index`.
+						// Without it, each chunk is treated as a separate call
+						// and the arguments never assemble.
+						index: i,
+						function: {
+							name: tc.function?.name || "",
+							arguments:
+								typeof tc.function?.arguments === "string"
+									? tc.function.arguments
+									: JSON.stringify(tc.function?.arguments || {}),
+						},
+					}));
+					sendChunk({ tool_calls: toolCalls }, null);
+				}
+				if (evt.done) {
+					usage = {
+						prompt_tokens: evt.prompt_eval_count || 0,
+						completion_tokens: evt.eval_count || 0,
+					};
+				}
+			}
+		}
+
+		// Final chunk carries the finish_reason and the usage, which the
+		// client requires.
+		//
+		// CRITICAL: when the model asked for tools, the finish_reason must be
+		// "tool_calls", not "stop". With "stop" the client treats the turn as
+		// finished and never runs the tool, so the model gets no answer and
+		// the run ends with no output. Verified: the tool ran (the result came
+		// back correctly) but the client still produced nothing, because the
+		// turn had already been closed.
+		const finalPayload = {
+			id,
+			object: "chat.completion.chunk",
+			created,
+			model: body.model,
+			choices: [
+				{ index: 0, delta: {}, finish_reason: sawToolCall ? "tool_calls" : "stop" },
+			],
+			usage: usage
+				? {
+						prompt_tokens: usage.prompt_tokens,
+						completion_tokens: usage.completion_tokens,
+						total_tokens: usage.prompt_tokens + usage.completion_tokens,
+					}
+				: undefined,
+		};
+		res.write(`data: ${JSON.stringify(finalPayload)}\n\n`);
+		res.write("data: [DONE]\n\n");
+		res.end();
+	} catch (err) {
+		res.writeHead(502, { "content-type": "application/json" });
+		res.end(JSON.stringify({ error: { message: String(err && err.message ? err.message : err), type: "shim_error" } }));
+	}
+});
+
+server.listen(PORT, "127.0.0.1", () => {
+	console.error(`ollama-v1-shim listening on 127.0.0.1:${PORT} -> ${TARGET} (num_ctx=${CTX})`);
+});
