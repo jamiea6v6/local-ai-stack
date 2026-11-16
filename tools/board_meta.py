@@ -25,7 +25,8 @@ Requires PyYAML (Debian: python3-yaml).
 
 Note: `arduino-cli board details` embeds extra.time.local/utc and absolute toolchain
 paths (~/.arduino15/..., the arduino-cli binary path) in its JSON. The provenance
-digest excludes those, so the same core version hashes identically on any host.
+digest drops the timestamps, replaces the home directory with <HOME>, and drops any
+remaining absolute-path value, so the same core version hashes identically on any host.
 """
 
 import argparse
@@ -180,18 +181,26 @@ def arduino_cli():
 
 
 def cli_digest(details):
+    home = str(Path.home())
+    cli_dir = str(Path(arduino_cli()).resolve().parent)
+
     def portable(entry):
         if entry.startswith("extra.time."):
-            return False
-        _, _, value = entry.partition("=")
-        return not (value.startswith("/") or value.startswith("~"))
+            return None
+        key, _, value = entry.partition("=")
+        if key == "runtime.ide.path":  # where arduino-cli happens to live
+            return None
+        value = value.replace(cli_dir, "<CLI_DIR>").replace(home, "<HOME>")
+        if value.startswith("/") or value.startswith("~"):
+            return None
+        return key + "=" + value
 
     doc = {
         "fqbn": details.get("fqbn"),
         "name": details.get("name"),
         "platform": details.get("platform"),
         "build_properties": sorted(
-            x for x in (details.get("build_properties") or []) if portable(x)
+            x for x in map(portable, details.get("build_properties") or []) if x
         ),
     }
     return sha256(json.dumps(doc, sort_keys=True, separators=(",", ":")).encode())
