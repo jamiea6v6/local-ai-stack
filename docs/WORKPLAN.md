@@ -21,7 +21,7 @@ the same commit.
 |---|---|---|---|
 | I1 | This workplan + recovery protocol | file committed, push succeeds | done |
 | I2 | Board metadata extractor `tools/board_meta.py` | generates `pins.yaml` + `specs.yaml` + `provenance.json` for d1_mini, nodemcu, uno, pico, pico2, esp32-devkit from real core files; `--check` re-verifies sha256 | done |
-| I3 | `bootstrap.sh` + `verify-stack.sh` (P106/Debian 13) | fresh SkyNet run installs/verifies all pieces; a second run is a no-op; `verify-stack.sh` prints PASS/FAIL per check | pending |
+| I3 | `bootstrap.sh` + `verify-stack.sh` (P106/Debian 13) | fresh SkyNet run installs/verifies all pieces; a second run is a no-op; `verify-stack.sh` prints PASS/FAIL per check | done |
 | I4 | Harness seam: `verify` accepts a project dir; routing + env paths | a project dir runs the three MCU gates; a candidate file still works; no absolute host paths in `pi-AGENTS.md` | pending |
 | I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | pending |
 | I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | pending |
@@ -59,3 +59,8 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
 ## Log
 - 2026-11-16 — I1 done (commit e03322c).
 - 2026-11-16 — I2 done: 6 boards generated under `refs/boards/`, `--check` green three runs in a row and on an anonymous fresh clone. Next: I3.
+- 2026-11-16 — I3 done (commit 0b0eb44): `bootstrap.sh` (user-local, idempotent, downloads checksum-verified) + `verify-stack.sh`
+  (read-only, PASS/FAIL/SKIP, `--require-p106`). SkyNet: 26 PASS / 0 FAIL / 4 SKIP — the skips are the three ai-stack config
+  symlinks (managed elsewhere) and no P106 on this box. Second run: 0 actions. Anonymous fresh clone: bootstrap created only its
+  venv, verify 26/0/4 exit 0. Also installed libportaudio2, pulled `gemma4:e4b-it-qat` (6.1 GB) and `llama3.2:3b`, and started
+  the shim as a user unit. Next: I4.
