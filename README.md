@@ -33,13 +33,45 @@ docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 git clone <this repo> ~/projects/local-ai-stack
 cd ~/projects/local-ai-stack
 ./bootstrap.sh          # idempotent; installs Node/Pi/shim/arduino-cli/venv user-local
-./verify-stack.sh       # read-only; prints PASS/FAIL per check
+./verify-stack.sh       # read-only; completion + GPU attribution + PASS/FAIL per check
 ```
+
+`bootstrap.sh --system` adds the root bits (`libportaudio2`, optionally Ollama via
+`--install-ollama`). `--pull-models` pulls every model named in `harness/models.json`.
+The first completion after a cold start can take a minute on a P106-100.
 
 The scripts automate the manual sequence in `MANIFEST.md` §2–3. The short version:
 NVIDIA driver **550.163.01** → Ollama **0.32.15+** → Node **22** in `~/.local/node` → Pi **1.4.0** →
 copy `harness/` into `~/.pi/agent/` → install the shim unit (rewrite its `ExecStart` to this repo) →
 pull `gemma4:e4b-it-qat` → `apt install libportaudio2`.
+
+### Hardware profiles
+
+`verify-stack.sh` picks a profile from the hardware, or you can name it:
+
+| Profile | Requires | Proves |
+|---|---|---|
+| `p106` | P106-100 (`10de:1c07`), 6144 MiB | 100% GPU, 32768 ctx, real completion |
+| `gpu` | any NVIDIA GPU with >= 6 GB | 100% GPU, 32768 ctx, real completion |
+| `cpu` | nothing (slow, still correct) | real completion; GPU checks skipped |
+| `auto` (default) | — | `p106` if fitted, else `gpu`, else `cpu` |
+
+The model under test is the **first entry** in `harness/models.json`; swap that file to
+re-target Pi (and the smoke test) at a different tier. `--no-inference` keeps CI-like runs
+to state checks only.
+
+The same scripts run inside a Debian 13 VM on Proxmox: pass the GPU through, confirm
+`lspci`/`nvidia-smi` see it *inside the guest*, then run them there. The host only supplies
+the driver.
+
+For a new P106 box (e.g. the two-card build):
+
+```bash
+git clone https://github.com/jamiea6v6/local-ai-stack.git
+cd local-ai-stack
+./bootstrap.sh --system --pull-models
+./verify-stack.sh --profile p106
+```
 
 ## The three ideas this encodes
 

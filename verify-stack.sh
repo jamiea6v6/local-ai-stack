@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # Verify a local-ai-stack install. Read-only: it changes nothing.
 #
-#   ./verify-stack.sh                 # P106 absence is a SKIP (non-target box)
-#   ./verify-stack.sh --require-p106  # P106 absence is a FAIL
+#   ./verify-stack.sh                     # auto: p106 if fitted, else gpu, else cpu
+#   ./verify-stack.sh --profile p106      # require a P106-100 + 6144 MiB + 100% GPU
+#   ./verify-stack.sh --profile gpu       # any NVIDIA GPU >= 6 GB + 100% GPU
+#   ./verify-stack.sh --profile cpu       # no GPU required (slow, still correct)
+#   ./verify-stack.sh --no-inference      # state checks only (CI / CI-like runs)
 #
+# Profiles also prove a real completion through the shim, that Ollama put the
+# model 100% in VRAM (except cpu), and that it loaded at 32768 context.
 # Exit 0 when no check FAILs; SKIPs are reported but do not fail the run.
 
 set -uo pipefail
@@ -11,14 +16,19 @@ set -uo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 PI_VERSION=1.4.0
 NODE_MIN=22.19.0
-REQUIRE_P106=0
-for arg in "$@"; do
-  case "$arg" in
-    --require-p106) REQUIRE_P106=1 ;;
-    -h|--help) sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
-    *) echo "unknown flag: $arg" >&2; exit 2 ;;
+PROFILE=auto
+INFER=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --profile) PROFILE=${2:-}; shift 2 ;;
+    --profile=*) PROFILE=${1#*=}; shift ;;
+    --require-p106) PROFILE=p106; shift ;;
+    --no-inference) INFER=0; shift ;;
+    -h|--help) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    *) echo "unknown flag: $1" >&2; exit 2 ;;
   esac
 done
+case "$PROFILE" in auto|p106|gpu|cpu) ;; *) echo "bad profile: $PROFILE (auto|p106|gpu|cpu)" >&2; exit 2 ;; esac
 
 PASS=0; FAIL=0; SKIP=0
 p() { PASS=$((PASS+1)); printf 'PASS  %s\n' "$*"; }
@@ -26,7 +36,18 @@ f() { FAIL=$((FAIL+1)); printf 'FAIL  %s\n' "$*"; }
 s() { SKIP=$((SKIP+1)); printf 'SKIP  %s\n' "$*"; }
 ver_ge() { [ "$(printf '%s\n%s\n' "$1" "$2" | sort -V | head -1)" = "$2" ]; }
 
-printf 'verify: %s\n' "$SCRIPT_DIR"
+p106_present() { command -v lspci >/dev/null 2>&1 && lspci -d 10de:1c07 2>/dev/null | grep . >/dev/null; }
+has_nvidia() { command -v nvidia-smi >/dev/null 2>&1 && nvidia-smi -L 2>/dev/null | grep '^GPU' >/dev/null; }
+max_vram_mib() { nvidia-smi --query-gpu=memory.total --format=csv,noheader,nounits 2>/dev/null | sort -n | tail -1; }
+
+if [ "$PROFILE" = auto ]; then
+  if p106_present; then PROFILE=p106
+  elif has_nvidia; then PROFILE=gpu
+  else PROFILE=cpu; fi
+  printf 'verify: %s (profile: %s, auto)\n' "$SCRIPT_DIR" "$PROFILE"
+else
+  printf 'verify: %s (profile: %s)\n' "$SCRIPT_DIR" "$PROFILE"
+fi
 
 # 1 OS
 if . /etc/os-release 2>/dev/null && [ "${ID:-}" = debian ] && [ "${VERSION_ID:-}" = 13 ]; then
@@ -105,6 +126,78 @@ elif command -v ollama >/dev/null 2>&1; then
   for m in "${MODEL_IDS[@]}"; do
     if printf '%s\n' "$HAVE" | grep -x "$m" >/dev/null; then p "model $m"; else f "model $m not pulled"; fi
   done
+fi
+
+# 5b inference: a real completion through the shim, then GPU attribution
+SMOKE_MODEL=${MODEL_IDS[0]:-}
+if [ "$INFER" = 0 ]; then
+  s "inference skipped (--no-inference)"
+elif [ -z "$SMOKE_MODEL" ]; then
+  f "inference: no model declared"
+elif ! curl -fsS --max-time 3 http://127.0.0.1:11435/v1/models >/dev/null 2>&1; then
+  s "inference: shim not answering (see above)"
+else
+  BODY=$(python3 - "$SMOKE_MODEL" <<'PYBODY'
+import json, sys
+print(json.dumps({
+    "model": sys.argv[1],
+    "messages": [{"role": "user", "content": "Reply with exactly: OK"}],
+    "max_tokens": 32, "temperature": 0, "keep_alive": "2m",
+}))
+PYBODY
+)
+  OUT=$(curl -sS --max-time 240 http://127.0.0.1:11435/v1/chat/completions \
+        -H 'Content-Type: application/json' -d "$BODY" 2>/dev/null)
+  VERDICT=$(printf '%s' "$OUT" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("bad-json"); raise SystemExit
+ch = (d.get("choices") or [{}])[0]
+msg = ch.get("message") or {}
+content = (msg.get("content") or "").strip()
+reason = ch.get("finish_reason")
+if not content:
+    print("empty-content" + (" (reasoning_content present)" if msg.get("reasoning_content") else ""))
+elif reason != "stop":
+    print("finish_reason=" + str(reason))
+else:
+    print("ok")
+')
+  case "$VERDICT" in
+    ok) p "completion via shim: $SMOKE_MODEL, non-empty, stop" ;;
+    *)  f "completion via shim: $VERDICT" ;;
+  esac
+
+  PS=$(curl -sS --max-time 5 http://127.0.0.1:11434/api/ps 2>/dev/null)
+  ATTR=$(printf '%s' "$PS" | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("absent"); raise SystemExit
+name, prof = sys.argv[1], sys.argv[2]
+ms = [m for m in d.get("models", []) if m.get("name") == name]
+if not ms:
+    print("absent"); raise SystemExit
+m = ms[0]
+size, vram = m.get("size") or 0, m.get("size_vram") or 0
+ctx = m.get("context_length")
+if ctx != 32768:
+    print("context=" + str(ctx))
+elif prof in ("p106", "gpu") and vram < size * 0.99:
+    print("split %d/%d MiB" % (vram // 1048576, size // 1048576))
+else:
+    print("ok %d/%d MiB ctx=%s" % (vram // 1048576, size // 1048576, ctx))
+' "$SMOKE_MODEL" "$PROFILE")
+  case "$ATTR" in
+    ok*) p "loaded: ${ATTR#ok }" ;;
+    absent) f "model not loaded after completion (keep_alive not honoured?)" ;;
+    context=*) f "loaded ${ATTR#context=} context (want 32768)" ;;
+    split*) f "processor ${ATTR#split } VRAM of model (want 100% for $PROFILE)" ;;
+    *) f "attribution: $ATTR" ;;
+  esac
 fi
 
 # 6 pi + config drift
@@ -198,21 +291,37 @@ else
   s "mcu-domain not found (set MCU_DOMAIN)"
 fi
 
-# 12 GPU
-if command -v lspci >/dev/null 2>&1 && lspci -d 10de:1c07 2>/dev/null | grep . >/dev/null; then
-  p "P106-100 present"
-  if command -v nvidia-smi >/dev/null 2>&1; then
-    line=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | grep -i p106 | head -1)
-    if [ -n "$line" ]; then
-      mem=$(printf '%s' "$line" | awk -F', ' '{print $2}')
-      [ "$mem" = "6144 MiB" ] && p "P106 VRAM 6144 MiB" || f "P106 VRAM is $mem (expected 6144 MiB)"
+# 12 GPU, by profile
+case "$PROFILE" in
+  p106)
+    if p106_present; then
+      p "P106-100 present"
+      if command -v nvidia-smi >/dev/null 2>&1; then
+        line=$(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null | grep -i p106 | head -1)
+        if [ -n "$line" ]; then
+          mem=$(printf '%s' "$line" | awk -F', ' '{print $2}')
+          [ "$mem" = "6144 MiB" ] && p "P106 VRAM 6144 MiB" || f "P106 VRAM is $mem (expected 6144 MiB)"
+        else
+          s "nvidia-smi does not list a P106"
+        fi
+      fi
     else
-      s "nvidia-smi does not list a P106"
+      f "p106 profile: P106-100 (10de:1c07) not present"
     fi
-  fi
-else
-  [ "$REQUIRE_P106" = 1 ] && f "P106-100 (10de:1c07) not present" || s "no P106-100 on this box (not a target box)"
-fi
+    ;;
+  gpu)
+    if has_nvidia; then
+      p "NVIDIA GPU present ($(nvidia-smi -L 2>/dev/null | wc -l) device(s))"
+      MEM=$(max_vram_mib)
+      [ "${MEM:-0}" -ge 6144 ] && p "max VRAM $MEM MiB" || f "max VRAM ${MEM:-0} MiB < 6144"
+    else
+      f "gpu profile: no NVIDIA GPU visible"
+    fi
+    ;;
+  cpu)
+    s "cpu profile: no GPU required"
+    ;;
+esac
 
 # 13 vulkan
 if command -v vulkaninfo >/dev/null 2>&1; then

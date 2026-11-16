@@ -171,7 +171,7 @@ deployed unit's `ExecStart`, hashes the script it names, and fails if it differs
 
 | Missing | Why it matters | When |
 |---|---|---|
-| `bootstrap.sh`, `verify-stack.sh` | install + prove: node/pi/harness/shim/arduino/venv, PASS/FAIL per check | done 2026-11-16 |
+| `bootstrap.sh`, `verify-stack.sh` | install + prove: node/pi/harness/shim/arduino/venv, real completion through the shim, `100% GPU` + 32768 ctx attribution, `--profile p106|gpu|cpu` | done 2026-11-16 |
 | `DECK.md` | the explainable presentation (house deck format: `## Slide N —`) | Thursday |
 | the grader example | `grader/` now holds `spec_cw_filter.py` + `stub_pyaudio.py` + `mutants/` (moved in from the old `cw-dsp` repo) | done |
 | updated test suite | `tests/LOCAL_AGENT_TEST_SUITE.md` is a snapshot; its harness refs are stale | Sunday/Monday |
