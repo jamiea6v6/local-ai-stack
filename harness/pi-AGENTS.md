@@ -33,8 +33,9 @@ Use `write` to create or replace a file, `edit` for an exact replacement. The
 fields are exact — do not invent alternatives:
 
 - `write(path, content)`
-- `edit(path, oldString, newString)` — not `file_path`/`filePath`; if an edit is
-  rejected, rewrite the whole file with `write` instead of retrying the schema.
+- `edit(path, oldString, newString)` — not `file_path`/`filePath`, and not an
+  `edits` array. If an edit is rejected once, rewrite the whole file with `write`
+  instead of retrying the schema.
 - `read(path)`, `bash(command)`
 - `verify(spec, candidate, project, python)`
 - `compile(path, fqbn)`

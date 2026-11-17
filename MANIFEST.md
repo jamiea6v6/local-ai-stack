@@ -161,7 +161,7 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 | `harness/extensions/verify.ts` | `45d276e980252059` | project mode (`gates.json` argv arrays), `python=` interpreter, `spec` now optional |
 | `harness/extensions/webfetch.ts` | `439111720285830c` | refuses PDF/octet-stream/binary bodies before decode (~21k-token injection measured) |
 | `harness/extensions/enforce-search.ts` | `8fb56caa3e06d4e8` | compile/build prompts and projects with `devices/` skip the lookup gate |
-| `harness/pi-AGENTS.md` | `0a649a6f3a923e25` | research vs build-from-facts modes, exact tool fields, compile/verify usage, board-sheet generator, `@STACK_DIR@` template |
+| `harness/pi-AGENTS.md` | `2429382246daf9a4` | research vs build-from-facts modes, exact tool fields, compile/verify usage, board-sheet generator, `@STACK_DIR@` template |
 | `bootstrap.sh` | `a97be60a7ec4fa28` | renders `@STACK_DIR@`; `--skip-pio` no longer runs the pio platform probe |
 | `tests/extensions/run-checks.sh` | — | 13-check regression suite driven without a Pi session |
 | `tools/board_sheet.py` | `3114f4cf03da4832` | NEW: renders `devices/<board>.txt` from refs + `arduino-cli board listall`; UNKNOWN where unsourced |
