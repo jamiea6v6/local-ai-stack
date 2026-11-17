@@ -101,6 +101,11 @@ display name, FQBN (from `arduino-cli board listall`), logic level, flash/RAM, a
 Anything without a source is `UNKNOWN` on purpose, so a build prompt has to ask instead of invent it.
 `--list` shows the boards with refs under `refs/boards/`.
 
+On a green build, `compile` also runs the pin gate: labels resolve through the sheet (`D8` → GPIO0),
+`RESERVED` ranges (ESP8266 GPIO6-11, the SPI flash) and pins absent from the sheet fail with
+`PINS: FAIL`, and the `pincheck` tool runs that check alone. Projects with no sheet, no sketch, or no
+pin calls report `PINS: SKIP` — a Python or Linux app pays nothing.
+
 ## Headless Pi runs
 
 Pi 1.4.0 blocks without a PTY even in `-p` mode, and prints nothing when it does. Wrap a headless run:

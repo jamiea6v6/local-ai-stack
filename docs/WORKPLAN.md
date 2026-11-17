@@ -138,7 +138,9 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   `esp8266:esp8266:d1` with the real core). Next: I4c.
 - 2026-11-16 — I4d done: the pin gate. `compile` now prints `PINS: PASS/FAIL/SKIP`; `pincheck` runs the
   check alone; auto-SKIP when there is no sheet/sketch/pin use. Fixtures include run 1's `lcd(8,9,4,5,6,7)`
-  (FAIL) and run 3's `lcd(0,2,4,14,12,13)` (PASS). All extension checks green. Next: I5.
+  (FAIL) and run 3's `lcd(0,2,4,14,12,13)` (PASS). All extension checks green. Proven on brain1: run 1's
+  sketch now reports `COMPILE: PASS` **and** `PINS: FAIL — GPIO8/9/6/7 reserved`; run 3 reports
+  `PINS: PASS — 7 pin use(s)`. One run came back with an empty final answer (I5 evidence). Next: I5.
 - 2026-11-16 — brain1 rerun of the VMA203 scenario (same prompt, project layout), three runs. Run 1 read
   the sheets, wrote one sketch and compiled first try with zero web calls (~5.9k input/turn) — but passed
   the manual's Uno numbers (8,9,4,5,6,7) to LiquidCrystal; GPIO8/9 are flash pins and it still compiled.
