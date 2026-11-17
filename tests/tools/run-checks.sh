@@ -30,6 +30,7 @@ check "d1 label maps to its GPIO"       'grep -q "D4 .*-> GPIO4" <<<"$out"'
 check "d1 LED_BUILTIN is present"       'grep -q "LED_BUILTIN .*-> GPIO2" <<<"$out"'
 check "d1 logic level is stated"        'grep -qx "LOGIC LEVEL: 3.3 V" <<<"$out"'
 check "d1 ADC range is not invented"    'grep -q "reference range UNKNOWN" <<<"$out"'
+check "d1 label/pin warning"           'grep -q "D8 is GPIO0" <<<"$out"'
 
 out=$(sheet --board arduino-uno)
 check "uno FQBN survives UNO/UNO Mini"  'grep -qx "FQBN: arduino:avr:uno" <<<"$out"'

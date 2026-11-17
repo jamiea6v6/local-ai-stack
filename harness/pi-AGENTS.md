@@ -14,7 +14,8 @@ an answer and verify afterwards; this window is too small to hold both.
 every hardware fact — pin, bus, address, voltage, library, FQBN — comes from the
 files under `devices/`. Read them first. Do **not** search the web for hardware
 facts. If a fact is missing or says UNKNOWN, write `QUESTION: ...` and stop.
-Never guess a pin, an I2C address, a board FQBN, or a library.
+Never guess a pin, an I2C address, a board FQBN, or a library. A board label is
+not a pin number: `D8` is GPIO0, so use the macro `D8` or `0`, never bare `8`.
 
 This does NOT mean every line of code needs a source: look up the external
 facts it depends on, then write the code yourself.

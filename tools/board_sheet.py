@@ -94,6 +94,8 @@ def render(board_id, spec, pins_doc, fqbn):
         "# BOARD FACT SHEET — generated, do not edit",
         "# Rerun: tools/board_sheet.py --board %s" % board_id,
         "# If a value says UNKNOWN, write `QUESTION: ...` and stop. Do not search for hardware facts.",
+        "# A label is not a pin number: D8 is GPIO0. In code use the macro (D8) or its GPIO (0),",
+        "# never the bare digits of the label (8) unless this sheet says GPIO8.",
         "",
         f"BOARD: {name}",
         f"REF: {board_id}",
