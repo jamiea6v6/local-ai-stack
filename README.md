@@ -22,7 +22,7 @@ harness/pi-AGENTS.md   the harness rules (short on purpose — every line costs 
 harness/settings.json  pi's own settings
 systemd/               the shim's user unit
 tools/                 the Ollama /v1 shim + raise-context.sh (why /v1 needs a shim: MANIFEST §2)
-tests/                 the pre-registered local-agent test suite (snapshot)
+tests/                 local-agent suite (snapshot) + extensions/run-checks.sh (13 seam checks, no Pi)
 grader/                the worked example: CW filter + deterministic grader + mutants
 docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 ```
@@ -93,6 +93,17 @@ python3 -m venv .venv && .venv/bin/pip install numpy scipy
 
 The bugs the grader exists to catch, and the harsher variant designed to fail, are in
 `grader/README.md` and `grader/mutants/`.
+
+## Headless Pi runs
+
+Pi 1.4.0 blocks without a PTY even in `-p` mode, and prints nothing when it does. Wrap a headless run:
+
+```
+script -qec "pi -p --model ollama/gemma4:e4b-it-qat '<prompt>'" /dev/null
+```
+
+That is how the 2026-11-16 end-to-end check ran: prompt → `firmware/blink/blink.ino` → `compile` PASS on
+`esp8266:esp8266:d1`, with the FQBN read from `devices/wemos-d1.txt` and no web search.
 
 ## Review fixes (2026-11-16)
 

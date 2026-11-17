@@ -116,6 +116,10 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   Fresh anonymous clone: extension checks 13/13, bootstrap rerun 0 actions, `@STACK_DIR@` substituted.
   brain1 pulled the same commit: config rerun 0 actions, extension checks 13/13 (compile PASS on
   `esp8266:esp8266:d1` with the real core). Next: I4c.
+- 2026-11-16 — I4b live proof on SkyNet: a PTY-wrapped `pi -p` run (build-from-facts prompt) wrote
+  `firmware/blink/blink.ino` and `compile` passed with the sheet's `esp8266:esp8266:d1`, no web search.
+  Pi 1.4.0 needs a PTY even with `-p` (documented in README). Live extensions on SkyNet and brain1 now
+  include `compile.ts`; both boxes' config reruns are 0 actions.
 - 2026-11-16 — board_meta became host-independent: digests drop `extra.time.*`, normalize `<HOME>`/`<CLI_DIR>`, ignore
   `runtime.ide.path`; `--seed-cache` fills the remote cache so a fresh box can `--check`; pio falls back across
   `espressif32*` dirs. Proven by brain1 `--check` green against refs generated on SkyNet.
