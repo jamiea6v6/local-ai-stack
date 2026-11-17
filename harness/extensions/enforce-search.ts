@@ -45,7 +45,7 @@
  * MAX_SEARCHES. This mirrors enforce-fetch.ts's MAX_NUDGES.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
@@ -79,6 +79,16 @@ const LOOKING_UP = [
 /** Prompts that are plainly about local files, not the world. */
 const LOCAL_ONLY =
 	/\b(read|edit|write|fix|refactor|rename|delete|move)\b.*\b(this|these|the following|file|code|repo)\b/i;
+
+/**
+ * Compile/build requests are not research questions.
+ *
+ * Measured 2026-11-17: "Can you test the code compile there?" matched `can you`, so the
+ * gate demanded a websearch before compiling. That search answered nothing (the board
+ * core was already installed) and the turn then failed on sketch layout. In a project
+ * with a devices/ folder, facts come from the sheets by rule; search is off.
+ */
+const BUILD_TASK = /\b(compile|build|flash|upload|sketch|firmware|arduino-cli|\.ino)\b/i;
 
 const MAX_SEARCHES = 4;
 
@@ -207,6 +217,8 @@ export default function (pi: ExtensionAPI) {
 	pi.on("before_agent_start", (event) => {
 		const prompt = event.prompt ?? "";
 		if (LOOKING_UP.some((re) => re.test(prompt))) return;
+		if (BUILD_TASK.test(prompt)) return;
+		if (existsSync(join(process.cwd(), "devices"))) return;
 		if (!QUESTION_PATTERNS.some((re) => re.test(prompt))) return;
 		if (LOCAL_ONLY.test(prompt) && !QUESTION_PATTERNS.some((re) => /what|why|how much|how many/i.test(prompt))) {
 			return;

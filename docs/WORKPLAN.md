@@ -111,6 +111,11 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   accepts `python=`. `pi-AGENTS.md` split research vs build-from-facts and is host-agnostic
   (`@STACK_DIR@` substituted by `bootstrap.sh`); `--skip-pio` no longer runs the pio platform probe.
   `tests/extensions/run-checks.sh`: 13/13. CW grader still 11/11. Next: I4c.
+- 2026-11-16 — I4b follow-up: `enforce-search` stands down for compile/build prompts and inside a project
+  with `devices/` — it had forced a websearch before the compile that then failed on sketch layout.
+  Fresh anonymous clone: extension checks 13/13, bootstrap rerun 0 actions, `@STACK_DIR@` substituted.
+  brain1 pulled the same commit: config rerun 0 actions, extension checks 13/13 (compile PASS on
+  `esp8266:esp8266:d1` with the real core). Next: I4c.
 - 2026-11-16 — board_meta became host-independent: digests drop `extra.time.*`, normalize `<HOME>`/`<CLI_DIR>`, ignore
   `runtime.ide.path`; `--seed-cache` fills the remote cache so a fresh box can `--check`; pio falls back across
   `espressif32*` dirs. Proven by brain1 `--check` green against refs generated on SkyNet.
