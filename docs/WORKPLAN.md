@@ -122,6 +122,13 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   Fresh anonymous clone: extension checks 13/13, bootstrap rerun 0 actions, `@STACK_DIR@` substituted.
   brain1 pulled the same commit: config rerun 0 actions, extension checks 13/13 (compile PASS on
   `esp8266:esp8266:d1` with the real core). Next: I4c.
+- 2026-11-16 — brain1 rerun of the VMA203 scenario (same prompt, project layout), three runs. Run 1 read
+  the sheets, wrote one sketch and compiled first try with zero web calls (~5.9k input/turn) — but passed
+  the manual's Uno numbers (8,9,4,5,6,7) to LiquidCrystal; GPIO8/9 are flash pins and it still compiled.
+  Run 2 had correct GPIOs but invented backlight polarity and burned 5 edit retries (`edits` array). Fixes:
+  sheets say "a label is not a pin number"; the VMA203 sheet carries the 6-arg constructor; AGENTS names
+  the `edits` mistake. Run 3: 4 reads → 1 write → 1 compile PASS, GPIOs 0,2,4,14,12,13, no backlight, no
+  web calls, 53.9k input total. The D1 header-position map is still a bench note (not meter-checked).
 - 2026-11-16 — I4c done: `tools/board_sheet.py` renders a board sheet from `refs/boards` + a live
   `arduino-cli board listall`; added the `wemos-d1` ref. 11/11 tool checks. Next: the brain1 rerun, then I5.
 - 2026-11-16 — I4b live proof on SkyNet: a PTY-wrapped `pi -p` run (build-from-facts prompt) wrote
