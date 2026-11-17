@@ -125,6 +125,29 @@ function extractTitle(html: string): string | undefined {
 	return t || undefined;
 }
 
+/**
+ * Refuse PDFs and other binary bodies before they reach the model.
+ *
+ * Measured 2026-11-17: a Velleman VMA203 datasheet fetched as
+ * application/pdf was decoded as text, saved to page.txt, and read back. It
+ * added ~21,000 tokens of binary scrap to one turn (5.2K -> 26.4K input),
+ * forced a compaction, and the task never recovered. The model cannot use
+ * PDF bytes, and no prompt telling it "don't guess" repairs an exhausted
+ * window. The right answer is to fail before the body is decoded.
+ */
+function binaryKind(contentType: string, body: string): string | null {
+	if (/application\/pdf/i.test(contentType) || body.startsWith("%PDF-")) return "PDF";
+	if (/application\/(zip|x-zip-compressed|x-7z-compressed|x-tar|gzip|octet-stream)/i.test(contentType)) {
+		return "binary file";
+	}
+	if (body.startsWith("PK\u0003\u0004")) return "ZIP archive";
+	if (body.length > 2000) {
+		const replacements = (body.match(/\uFFFD/g) ?? []).length;
+		if (replacements / body.length > 0.02) return "binary data";
+	}
+	return null;
+}
+
 async function saveFull(body: string): Promise<string> {
 	const dir = await mkdtemp(join(tmpdir(), "pi-webfetch-"));
 	const file = join(dir, "page.txt");
@@ -195,6 +218,17 @@ export default function (pi: ExtensionAPI) {
 
 			const contentType = response.headers.get("content-type") ?? "unknown";
 			const body = await response.text();
+
+			const binary = binaryKind(contentType, body);
+			if (binary) {
+				throw new Error(
+					`Refusing ${binary} content: ${current.href} (${contentType}, ${formatSize(body.length)}). ` +
+						"Binary bodies decode as garbage and can consume the whole context window " +
+						"(a datasheet PDF measured ~21k tokens). Do not retry this URL. " +
+						"Instead: convert it first with `pdftotext -layout <file>.pdf out.txt` and read the .txt, " +
+						"fetch an HTML page with the same facts, or ask for a text fact sheet.",
+				);
+			}
 
 			const isHtml = /text\/html|application\/xhtml/i.test(contentType);
 			const wantsRaw = params.format === "raw";

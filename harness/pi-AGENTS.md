@@ -1,63 +1,86 @@
-# Pi — brain1 harness rules
+# Pi — local harness rules
 
 Global context for every Pi session on this box. Kept short on purpose: the
 context window is 32768 tokens (the shim requests it) and the baseline prompt
 already costs ~4700.
 
-## Look up the facts, then write the code
+## Pick a mode first
 
-Any specific you would otherwise state from memory — a package name, an install
-command, a version, an API signature, a config key, a file path — must come
-from a source. `websearch`, then `webfetch` the most relevant result, then
-continue.
+**Research** (no local facts on disk): `websearch`, then `webfetch` the most
+relevant result, then answer once and cite the URL. Search first — do not draft
+an answer and verify afterwards; this window is too small to hold both.
 
-Search FIRST, then answer once. Do not draft an answer and verify afterwards:
-this window is too small to hold both, and an overflowing turn ends with
-`stopReason=length` and no output at all.
+**Build from facts** (firmware, wiring, any task with a `devices/` folder):
+every hardware fact — pin, bus, address, voltage, library, FQBN — comes from the
+files under `devices/`. Read them first. Do **not** search the web for hardware
+facts. If a fact is missing or says UNKNOWN, write `QUESTION: ...` and stop.
+Never guess a pin, an I2C address, a board FQBN, or a library.
 
-This does NOT mean you need a source for code you write — look up the external
-facts it depends on, then write the code yourself. And it does NOT mean you
-need to find a finished program to copy — look up the API and install commands,
-then write your own.
+This does NOT mean every line of code needs a source: look up the external
+facts it depends on, then write the code yourself.
 
-If a search fails, say plainly that you could not verify it rather than
-answering from memory.
+## Do not fetch PDFs
+
+A PDF fetched as text decodes as binary garbage and can add ~20k tokens in one
+turn (measured: one datasheet forced a compaction and the task never recovered).
+`webfetch` now refuses them. If a fact exists only in a PDF, convert it once with
+`pdftotext -layout file.pdf out.txt` and read `out.txt`, or ask for a text sheet.
 
 ## Write files, do not just describe them
 
-If the request is to write or change a program, write it with the `write` tool.
-A file can be checked; a chat reply cannot.
+Use `write` to create or replace a file, `edit` for an exact replacement. The
+fields are exact — do not invent alternatives:
+
+- `write(path, content)`
+- `edit(path, oldString, newString)` — not `file_path`/`filePath`; if an edit is
+  rejected, rewrite the whole file with `write` instead of retrying the schema.
+- `read(path)`, `bash(command)`
+- `verify(spec, candidate, project, python)`
+- `compile(path, fqbn)`
+
+If the request is to write or change a program, write it. A file can be checked;
+a chat reply cannot.
+
+## Compile firmware with `compile`
+
+One live sketch per project, at `firmware/<name>/<name>.ino`. arduino-cli
+requires the directory and file names to match; a flat `<name>.ino` fails with
+"main file missing from sketch". `compile` applies that rule, moves a single
+stray file into place, and reads the board from `devices/<board>.txt`
+(`FQBN: esp8266:esp8266:d1`) or `BRIEF.md`.
+
+```
+compile(path=".", fqbn="esp8266:esp8266:d1")
+```
+
+Never answer "it should compile" — run it and fix the error the compiler names.
 
 ## Grade your own work with `verify`
 
 Do not reason about whether your output is correct. Run it.
 
-```
-verify(spec="~/projects/local-ai-stack/grader/spec_cw_filter.py",
-       candidate="cw_filter.py")
-```
+- `verify(project=".")` runs every gate in the project's `gates.json` (pins,
+  libraries, compile, behavior) and reports PASS/FAIL per gate.
+- `verify(spec="<spec>.py", candidate="<file>")` runs one python spec. Pass the
+  file you just wrote, by relative path — never a reference implementation.
+  If its imports live in a venv, pass `python="<venv>/bin/python3"` or set
+  `PI_VERIFY_PYTHON`.
 
-`candidate` must be **the file you just wrote, by relative path**. Verifying a
-different file — especially a reference implementation — proves nothing about
-your work, and the harness cannot tell the difference for you.
-
-Deterministic: it drives the program against a fake USB sound card and
-measures the real audio output. Exit 0 means every check passed. If it reports
-failures, fix the case named — do not rewrite the file.
-
-`~/projects/local-ai-stack/grader/cw_filter.py` is a known-good reference
-implementation (11/11). It exists so a human can prove the grader works. Do
-**not** copy it, and do not submit it to verify — the harness rejects candidate
-paths under `grader/` for exactly that reason.
+The CW audio spec is only for the CW task:
+`verify(spec="@STACK_DIR@/grader/spec_cw_filter.py", candidate="cw_filter.py")`.
+`@STACK_DIR@/grader/cw_filter.py` is the known-good reference (11/11) — do not
+copy or submit it.
 
 ## Machine facts
 
 - Debian 13, i5-6500T, 23 GB RAM, P106-100 (6 GB) on the Vulkan path
 - Ollama 0.32.15 on `127.0.0.1:11434`, `gemma4:e4b-it-qat` (~30 tok/s)
-- Node 22 is in `~/.local/node`; the system Node 20 cannot run Pi
+- Node 22 is required; `bootstrap.sh` installs it under `~/.local/node` when the
+  system Node is older
 - No passwordless sudo
-- Python with numpy/scipy: `~/projects/local-ai-stack/grader/.venv/bin/python3` (system
+- Python with numpy/scipy: `@STACK_DIR@/grader/.venv/bin/python3` (system
   python3 has neither; `pip install` is blocked by PEP 668)
+- `arduino-cli` may live in `~/.local/bin`; `compile` finds it there
 - Context window is **32768**, set per request by the shim (`/v1` ignores
   `num_ctx` on its own). Override with `PI_CONTEXT_LIMIT` if the shim changes.
   Measurements: `~/.pi/agent/gate-log.md`

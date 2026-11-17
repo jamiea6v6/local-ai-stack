@@ -22,7 +22,9 @@ the same commit.
 | I1 | This workplan + recovery protocol | file committed, push succeeds | done |
 | I2 | Board metadata extractor `tools/board_meta.py` | generates `pins.yaml` + `specs.yaml` + `provenance.json` for d1_mini, nodemcu, uno, pico, pico2, esp32-devkit from real core files; `--check` re-verifies sha256 | done |
 | I3 | `bootstrap.sh` + `verify-stack.sh` (P106/Debian 13) | fresh SkyNet run installs/verifies all pieces; a second run is a no-op; `verify-stack.sh` prints PASS/FAIL per check | done |
-| I4 | Harness seam: `verify` accepts a project dir; routing + env paths | a project dir runs the three MCU gates; a candidate file still works; no absolute host paths in `pi-AGENTS.md` | pending |
+| I4a | Research guard: `webfetch` refuses PDF/binary bodies | a served `%PDF` is refused before decode; text/HTML still works | done |
+| I4b | Compile gate + project gates + tool contract | `compile` builds `firmware/<n>/<n>.ino` with the sheet's FQBN and returns the compiler verdict; `verify(project=...)` runs `gates.json`; no absolute host paths in `pi-AGENTS.md`; `tests/extensions/run-checks.sh` green | done |
+| I4c | Board fact-sheet generator | `tools/board_sheet.py --board <id>` emits `devices/<board>.txt` from `refs/boards` + `arduino-cli board listall` (label→GPIO, FQBN, logic, ADC), UNKNOWN where unsourced | pending |
 | I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | pending |
 | I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | pending |
 | I7 | Two end-to-end runs on e4b | MCU firmware task + basic Linux app, natural prompt to gated artifact; iterations-to-green logged | pending |
@@ -46,6 +48,35 @@ Reuse existing toolchains instead of hand-writing pin maps:
   (mcu, flash, ram, f_cpu, logic V), `provenance.json` (source, version, sha256, fetched).
 - Gate use: `check_pins_src.py --board <id>` resolves against generated maps, fail closed.
 - RAG use: these maps are **exact lookup**, not embeddings; prose stays for Phase 2.
+
+### I4a — PDF/binary guard
+The 2026-11-17 VMA203 session fetched a datasheet PDF as text and read the saved dump: one turn went
+5.2K → 26.4K input tokens, forced a compaction, and the task never recovered. `webfetch` now rejects
+`application/pdf`, `%PDF-`, ZIP/octet-stream, and bodies with >2 % U+FFFD before the model sees them,
+and names the conversion path (`pdftotext -layout`). `tests/extensions` serves a `%PDF` locally and
+asserts the refusal.
+
+### I4b — compile gate, project gates, tool contract
+The same session wrote a flat `VMA203_Hello.ino`; arduino-cli then demanded `<cwd>/<cwd>.ino` and the
+model retried four times before calling the environment broken. `compile(path, fqbn)`:
+
+- applies the `<dir>/<name>.ino` rule and moves a single stray `.ino` into place;
+- takes `FQBN:` from `devices/*.txt` or `BRIEF.md` (conflicting sheets are an error), never guesses;
+- finds `arduino-cli` via `ARDUINO_CLI`, `PATH`, `~/.local/bin`, `~/bin`, `/usr/bin`;
+- returns the compiler's output plus a NEXT hint for layout / bad FQBN / missing header.
+
+`verify(project=...)` runs the project's `gates.json` as argv arrays (no shell), one PASS/FAIL per gate;
+spec mode keeps working and accepts `python=` (or `PI_VERIFY_PYTHON`) so a venv candidate can import its
+packages. `pi-AGENTS.md` now has research vs build-from-facts modes, exact tool field names, and no
+absolute host paths — `bootstrap.sh` substitutes `@STACK_DIR@` at install time. The regression gate is
+`tests/extensions/run-checks.sh` (13 checks, no Pi session).
+
+### I4c — board fact sheets
+Explain to the agent and the human in one file what the machine already knows: `tools/board_sheet.py`
+renders `devices/<board>.txt` from `refs/boards/<id>/` and `arduino-cli board listall` — display name,
+FQBN, logic level, flash/RAM, and a pin table with the board label and the GPIO number. Values without
+a source stay UNKNOWN so the model must ask. Generated once per project; `RESULT.md` measurements fold
+back into a project override, not into the shared ref.
 
 ### I5 — empty final answer
 Symptom from the 2026-11-14 run: `content: []`, 1 output token, `stopReason: stop`. Replay the saved
@@ -72,8 +103,14 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   AGENTS/models/settings, shim unit repointed and restarted, arduino-cli 1.6.0 + cores + libs, PlatformIO 6.2.0 +
   espressif32, venv with numpy/scipy/pyyaml) → rerun **0 actions**. `verify-stack.sh --profile p106`: **31 PASS / 1 FAIL /
   3 SKIP**, completion through the shim, `loaded: 2974/2974 MiB ctx=32768`. Only FAIL is `libportaudio2` (needs the sudo
-  password); SKIPs are pi-not-on-non-login-PATH (login shell resolves `/home/jamie/.pi/agent/bin/pi`), no mcu-domain, no
+  password); SKIPs are pi-not-on-non-login-PATH (login shell resolves `~/.pi/agent/bin/pi`), no mcu-domain, no
   vulkaninfo. Config backups: `~/pi-agent-config-backup-20261116-212417.tgz`; old `~/projects/cw-dsp` untouched.
+- 2026-11-16 — I4a + I4b done: `webfetch` refuses PDF/binary bodies (measured 21k-token injection);
+  `compile(path,fqbn)` enforces `<name>/<name>.ino`, sources the FQBN from `devices/`, discovers
+  arduino-cli, and returns a NEXT hint; `verify(project=...)` runs a project's `gates.json` and spec mode
+  accepts `python=`. `pi-AGENTS.md` split research vs build-from-facts and is host-agnostic
+  (`@STACK_DIR@` substituted by `bootstrap.sh`); `--skip-pio` no longer runs the pio platform probe.
+  `tests/extensions/run-checks.sh`: 13/13. CW grader still 11/11. Next: I4c.
 - 2026-11-16 — board_meta became host-independent: digests drop `extra.time.*`, normalize `<HOME>`/`<CLI_DIR>`, ignore
   `runtime.ide.path`; `--seed-cache` fills the remote cache so a fresh box can `--check`; pio falls back across
   `espressif32*` dirs. Proven by brain1 `--check` green against refs generated on SkyNet.

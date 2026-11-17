@@ -142,20 +142,30 @@ head_ "Pi harness config"
 PI_HOME="$HOME/.pi/agent"
 mkdir -p "$PI_HOME" 2>/dev/null || true
 install_file() {
-  local src=$1 dst=$2
+  local src=$1 dst=$2 label=${3:-$(basename "$1")}
   if [ -L "$dst" ] && [ "$FORCE_CONFIG" = 0 ]; then
-    warn "$(basename "$dst") is a symlink to $(readlink "$dst"); managed elsewhere, not touching"
+    warn "$label is a symlink to $(readlink "$dst"); managed elsewhere, not touching"
     return
   fi
-  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then ok "$(basename "$dst")"; return; fi
+  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then ok "$label"; return; fi
   if [ "$FORCE_CONFIG" = 1 ] && [ -L "$dst" ]; then run rm -f "$dst"; fi
   if [ -f "$dst" ]; then
     local bak="$dst.bak.$(date +%Y%m%d%H%M%S)"
-    act "back up $(basename "$dst") -> $(basename "$bak")"
+    act "back up $label -> $(basename "$bak")"
     run cp -p "$dst" "$bak"
   fi
-  act "install $(basename "$dst")"
+  act "install $label"
   run install -m 0644 "$src" "$dst"
+}
+
+# Install a config file after substituting @STACK_DIR@ with this clone's path.
+# The repo copy stays host-agnostic; the installed copy gets real paths.
+render_file() {
+  local src=$1 dst=$2 label=${3:-$(basename "$1")} tmp
+  tmp=$(mktemp)
+  sed "s|@STACK_DIR@|$SCRIPT_DIR|g" "$src" >"$tmp"
+  install_file "$tmp" "$dst" "$label"
+  rm -f "$tmp"
 }
 if [ "$SKIP_CONFIG" = 0 ]; then
   if [ -L "$PI_HOME/extensions" ] && [ "$FORCE_CONFIG" = 0 ]; then
@@ -168,7 +178,7 @@ if [ "$SKIP_CONFIG" = 0 ]; then
   fi
   install_file "$SCRIPT_DIR/harness/models.json" "$PI_HOME/models.json"
   install_file "$SCRIPT_DIR/harness/settings.json" "$PI_HOME/settings.json"
-  install_file "$SCRIPT_DIR/harness/pi-AGENTS.md" "$PI_HOME/AGENTS.md"
+  render_file "$SCRIPT_DIR/harness/pi-AGENTS.md" "$PI_HOME/AGENTS.md" "AGENTS.md"
 else
   say "skipped (--skip-config)"
 fi
@@ -379,7 +389,7 @@ else
   fi
   PIO="$HOME/.local/bin/pio"
 fi
-if [ -n "$PIO" ]; then
+if [ "$SKIP_PIO" = 0 ] && [ -n "$PIO" ]; then
   if "$PIO" pkg list -g 2>/dev/null | grep "espressif32" >/dev/null; then
     ok "platform espressif32"
   else
