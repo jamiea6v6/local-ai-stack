@@ -1,0 +1,15 @@
+board: wemos-d1
+display_name: LOLIN(WeMos) D1 R1
+mcu: esp8266
+platform: esp8266@3.1.2
+f_cpu_hz: 80000000
+flash_bytes: 4194304
+ram_bytes: 81920
+upload_max_bytes: null
+logic_v: 3.3
+logic_v_extraction: curated from the cited datasheet
+frameworks:
+  arduino:
+    coverage: pins+specs
+spec_gaps: []
+notes: []

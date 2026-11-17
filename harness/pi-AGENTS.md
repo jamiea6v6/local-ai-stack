@@ -53,6 +53,10 @@ stray file into place, and reads the board from `devices/<board>.txt`
 compile(path=".", fqbn="esp8266:esp8266:d1")
 ```
 
+If the project needs a board sheet, generate it instead of typing pins:
+`@STACK_DIR@/tools/board_sheet.py --board wemos-d1 --out devices/wemos-d1.txt`
+(it fills the FQBN too).
+
 Never answer "it should compile" — run it and fix the error the compiler names.
 
 ## Grade your own work with `verify`

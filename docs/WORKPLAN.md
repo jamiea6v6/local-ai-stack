@@ -24,7 +24,7 @@ the same commit.
 | I3 | `bootstrap.sh` + `verify-stack.sh` (P106/Debian 13) | fresh SkyNet run installs/verifies all pieces; a second run is a no-op; `verify-stack.sh` prints PASS/FAIL per check | done |
 | I4a | Research guard: `webfetch` refuses PDF/binary bodies | a served `%PDF` is refused before decode; text/HTML still works | done |
 | I4b | Compile gate + project gates + tool contract | `compile` builds `firmware/<n>/<n>.ino` with the sheet's FQBN and returns the compiler verdict; `verify(project=...)` runs `gates.json`; no absolute host paths in `pi-AGENTS.md`; `tests/extensions/run-checks.sh` green | done |
-| I4c | Board fact-sheet generator | `tools/board_sheet.py --board <id>` emits `devices/<board>.txt` from `refs/boards` + `arduino-cli board listall` (label→GPIO, FQBN, logic, ADC), UNKNOWN where unsourced | pending |
+| I4c | Board fact-sheet generator | `tools/board_sheet.py --board <id>` emits `devices/<board>.txt` from `refs/boards` + `arduino-cli board listall` (label→GPIO, FQBN, logic, ADC), UNKNOWN where unsourced; `tests/tools/run-checks.sh` green | done |
 | I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | pending |
 | I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | pending |
 | I7 | Two end-to-end runs on e4b | MCU firmware task + basic Linux app, natural prompt to gated artifact; iterations-to-green logged | pending |
@@ -78,6 +78,12 @@ FQBN, logic level, flash/RAM, and a pin table with the board label and the GPIO 
 a source stay UNKNOWN so the model must ask. Generated once per project; `RESULT.md` measurements fold
 back into a project override, not into the shared ref.
 
+Shipped: the generator plus a `wemos-d1` ref (the R1 board, `esp8266:esp8266:d1`) — its D-labels do
+not follow GPIO order (D8=GPIO0, D9=GPIO2), so a hand-typed table is exactly the kind of fact that gets
+invented. `arduino-cli` spells the Uno "Arduino UNO", so name matching is case-insensitive with a
+single-loose-hit rule; no CLI means `FQBN: UNKNOWN`, never a guess. `tests/tools/run-checks.sh` has 11
+checks (sourced FQBN, label→GPIO, no invented ADC range, UNKNOWN fallback, `--out`, bad board id).
+
 ### I5 — empty final answer
 Symptom from the 2026-11-14 run: `content: []`, 1 output token, `stopReason: stop`. Replay the saved
 request shape through the shim with instrumentation (`finish_reason`, `max_tokens`, template
@@ -116,6 +122,8 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   Fresh anonymous clone: extension checks 13/13, bootstrap rerun 0 actions, `@STACK_DIR@` substituted.
   brain1 pulled the same commit: config rerun 0 actions, extension checks 13/13 (compile PASS on
   `esp8266:esp8266:d1` with the real core). Next: I4c.
+- 2026-11-16 — I4c done: `tools/board_sheet.py` renders a board sheet from `refs/boards` + a live
+  `arduino-cli board listall`; added the `wemos-d1` ref. 11/11 tool checks. Next: the brain1 rerun, then I5.
 - 2026-11-16 — I4b live proof on SkyNet: a PTY-wrapped `pi -p` run (build-from-facts prompt) wrote
   `firmware/blink/blink.ino` and `compile` passed with the sheet's `esp8266:esp8266:d1`, no web search.
   Pi 1.4.0 needs a PTY even with `-p` (documented in README). Live extensions on SkyNet and brain1 now

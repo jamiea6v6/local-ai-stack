@@ -21,8 +21,8 @@ harness/models.json    provider, model, context window, sampling
 harness/pi-AGENTS.md   the harness rules (short on purpose — every line costs per turn)
 harness/settings.json  pi's own settings
 systemd/               the shim's user unit
-tools/                 the Ollama /v1 shim + raise-context.sh (why /v1 needs a shim: MANIFEST §2)
-tests/                 local-agent suite (snapshot) + extensions/run-checks.sh (13 seam checks, no Pi)
+tools/                 Ollama /v1 shim, raise-context.sh, board_meta.py, board_sheet.py (fact sheets)
+tests/                 local-agent suite (snapshot) + extensions/run-checks.sh (13 seam checks) + tools/run-checks.sh (11 board-sheet checks)
 grader/                the worked example: CW filter + deterministic grader + mutants
 docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 ```
@@ -93,6 +93,13 @@ python3 -m venv .venv && .venv/bin/pip install numpy scipy
 
 The bugs the grader exists to catch, and the harsher variant designed to fail, are in
 `grader/README.md` and `grader/mutants/`.
+
+## Board fact sheets
+
+`tools/board_sheet.py --board wemos-d1 --out devices/wemos-d1.txt` renders what the repo can source:
+display name, FQBN (from `arduino-cli board listall`), logic level, flash/RAM, and a label→GPIO table.
+Anything without a source is `UNKNOWN` on purpose, so a build prompt has to ask instead of invent it.
+`--list` shows the boards with refs under `refs/boards/`.
 
 ## Headless Pi runs
 

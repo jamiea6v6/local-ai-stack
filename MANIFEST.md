@@ -161,9 +161,14 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 | `harness/extensions/verify.ts` | `45d276e980252059` | project mode (`gates.json` argv arrays), `python=` interpreter, `spec` now optional |
 | `harness/extensions/webfetch.ts` | `439111720285830c` | refuses PDF/octet-stream/binary bodies before decode (~21k-token injection measured) |
 | `harness/extensions/enforce-search.ts` | `8fb56caa3e06d4e8` | compile/build prompts and projects with `devices/` skip the lookup gate |
-| `harness/pi-AGENTS.md` | `4806e643c7710daa` | research vs build-from-facts modes, exact tool fields, compile/verify usage, `@STACK_DIR@` template |
+| `harness/pi-AGENTS.md` | `ed23bb6f8ddd9bc9` | research vs build-from-facts modes, exact tool fields, compile/verify usage, board-sheet generator, `@STACK_DIR@` template |
 | `bootstrap.sh` | `a97be60a7ec4fa28` | renders `@STACK_DIR@`; `--skip-pio` no longer runs the pio platform probe |
 | `tests/extensions/run-checks.sh` | — | 13-check regression suite driven without a Pi session |
+| `tools/board_sheet.py` | `68a12d95b9c232d6` | NEW: renders `devices/<board>.txt` from refs + `arduino-cli board listall`; UNKNOWN where unsourced |
+| `tools/board_meta.py` | `c62a7e43ee153157` | adds the `wemos-d1` (R1) board definition |
+| `refs/boards/wemos-d1/pins.yaml` | `fd171b27cfa3b633` | D-label→GPIO map extracted from `variants/d1/pins_arduino.h` (24 pins) |
+| `refs/boards/wemos-d1/specs.yaml` | `c428e56c86c7f70d` | R1 specs: esp8266, 3.3 V, 4 MiB / 80 KiB |
+| `tests/tools/run-checks.sh` | `ad317df772a9da50` | 11 board-sheet checks: FQBN sourcing, label→GPIO, UNKNOWN fallback |
 
 ---
 

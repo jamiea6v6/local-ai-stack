@@ -77,6 +77,12 @@ BOARDS = {
         "logic_v": (3.3, "wemos"),
         "frameworks": ["arduino"],
     },
+    "wemos-d1": {
+        "display_name": "LOLIN(WeMos) D1 R1",
+        "arduino_fqbn": "esp8266:esp8266:d1",
+        "logic_v": (3.3, "wemos"),
+        "frameworks": ["arduino"],
+    },
     "nodemcu": {
         "display_name": "NodeMCU 1.0 (ESP-12E)",
         "arduino_fqbn": "esp8266:esp8266:nodemcuv2",
