@@ -27,10 +27,11 @@ function load(file) {
     return tools;
   });
 }
-const [{ compile }, { verify }, { webfetch }] = await Promise.all([
+const [{ compile }, { verify }, { webfetch }, { pincheck }] = await Promise.all([
   load(join(root, "compile.ts")),
   load(join(root, "verify.ts")),
   load(join(root, "webfetch.ts")),
+  load(join(root, "pins.ts")),
 ]);
 let fails = 0;
 const check = (name, cond, detail = "") => {
@@ -50,6 +51,7 @@ if (cliCandidates.some((p) => existsSync(p))) {
   check("compile: PASS", c1.details.passed === true, c1.content[0].text.slice(0, 300));
   check("compile: layout on disk", await access(join(proj, "Blink", "Blink.ino")).then(() => true, () => false));
   check("compile: output has verdict", /COMPILE: PASS/.test(c1.content[0].text));
+  check("compile: non-GPIO sheet skips pins", /PINS: SKIP/.test(c1.content[0].text));
 
   const c3 = await compile.execute("3", { path: proj, fqbn: "esp8266:esp8266:not-a-board" }, undefined);
   check("compile: bad FQBN FAIL", c3.details.passed === false && /NEXT:/.test(c3.content[0].text), c3.content[0].text.slice(0, 300));
@@ -116,6 +118,73 @@ check("webfetch: PDF refused", /Refusing PDF/.test(pdfErr), pdfErr);
 const w2 = await webfetch.execute("9", { url: `http://127.0.0.1:${port}/plain` }, undefined);
 check("webfetch: text still works", /hello world/.test(w2.content[0].text));
 srv.close();
+
+const pinsProj = join(root, "pinsProj");
+await rm(pinsProj, { recursive: true, force: true });
+await mkdir(join(pinsProj, "devices"), { recursive: true });
+await mkdir(join(pinsProj, "firmware", "lcd"), { recursive: true });
+await writeFile(
+  join(pinsProj, "devices", "wemos-d1.txt"),
+  [
+    "BOARD: Wemos D1 R1",
+    "FQBN: esp8266:esp8266:d1",
+    "RESERVED: GPIO6-11 (SPI flash)",
+    "PINS (board label -> GPIO; source: test)",
+    "  D8 -> GPIO0",
+    "  D9 -> GPIO2",
+    "  D4 -> GPIO4",
+    "  D5 -> GPIO14",
+    "  D6 -> GPIO12",
+    "  D7 -> GPIO13",
+    "  A0 -> GPIO17",
+    "  LED_BUILTIN -> GPIO2",
+    "",
+  ].join("\n"),
+);
+const sketch = join(pinsProj, "firmware", "lcd", "lcd.ino");
+const checkPins = async (src) => {
+  await writeFile(sketch, src);
+  return pincheck.execute("p", { path: pinsProj }, undefined);
+};
+
+let p1 = await checkPins("LiquidCrystal lcd(8, 9, 4, 5, 6, 7);\nvoid setup(){} void loop(){}\n");
+check("pins: manual Uno numbers FAIL", p1.details.verdict === "FAIL", p1.content[0].text);
+check("pins: flash GPIO named", /GPIO8|GPIO9|reserved/.test(p1.content[0].text), p1.content[0].text.slice(0, 300));
+
+p1 = await checkPins("LiquidCrystal lcd(D8, D9, D4, D5, D6, D7);\nvoid setup(){} void loop(){}\n");
+check("pins: sheet labels PASS", p1.details.verdict === "PASS", p1.content[0].text);
+
+p1 = await checkPins("LiquidCrystal lcd(0, 2, 4, 14, 12, 13);\nvoid setup(){} void loop(){}\n");
+check("pins: sheet GPIOs PASS", p1.details.verdict === "PASS", p1.content[0].text);
+
+p1 = await checkPins("void setup(){ pinMode(6, OUTPUT); } void loop(){}\n");
+check("pins: reserved GPIO6 FAIL", p1.details.verdict === "FAIL" && /reserved/.test(p1.content[0].text), p1.content[0].text);
+
+p1 = await checkPins("const int ledPin = 2;\nvoid setup(){ pinMode(ledPin, OUTPUT); } void loop(){}\n");
+check("pins: const resolves", p1.details.verdict === "PASS", p1.content[0].text);
+
+p1 = await checkPins("void setup(){ pinMode(ledPin, OUTPUT); } void loop(){}\n");
+check("pins: unknown identifier FAIL", p1.details.verdict === "FAIL" && /cannot resolve/.test(p1.content[0].text), p1.content[0].text);
+
+p1 = await checkPins("void setup(){ analogRead(A0); } void loop(){}\n");
+check("pins: analogue label PASS", p1.details.verdict === "PASS", p1.content[0].text);
+
+p1 = await checkPins("void setup(){ Serial.begin(115200); } void loop(){}\n");
+check("pins: no pin use SKIP", p1.details.verdict === "SKIP", p1.content[0].text);
+
+const plain = join(root, "plainproj");
+await rm(plain, { recursive: true, force: true });
+await mkdir(plain, { recursive: true });
+await writeFile(join(plain, "app.py"), "print('no gpio here')\n");
+const p2 = await pincheck.execute("q", { path: plain }, undefined);
+check("pins: non-GPIO project SKIP", p2.details.verdict === "SKIP", p2.content[0].text);
+
+const sketchOnly = join(root, "sketchonly");
+await rm(sketchOnly, { recursive: true, force: true });
+await mkdir(sketchOnly, { recursive: true });
+await writeFile(join(sketchOnly, "x.ino"), "void setup(){ pinMode(13, OUTPUT); } void loop(){}\n");
+const p3 = await pincheck.execute("r", { path: sketchOnly }, undefined);
+check("pins: no board sheet SKIP", p3.details.verdict === "SKIP", p3.content[0].text);
 
 console.log(fails === 0 ? "\nALL CHECKS PASSED" : `\n${fails} CHECK(S) FAILED`);
 process.exit(fails === 0 ? 0 : 1);

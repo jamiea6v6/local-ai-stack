@@ -14,8 +14,9 @@
  * the project's device sheet instead of letting the model guess, and runs the
  * compiler with an explicit timeout. The verdict comes from the compiler.
  *
- * Deliberately narrow: one sketch, one FQBN, no shell interpolation. Gates
- * that check pins, libraries, or behavior belong in `verify(project=...)`.
+ * Deliberately narrow: one sketch, one FQBN, no shell interpolation. A green
+ * build also runs the pin gate (pins.ts) against the sheet; libraries and
+ * behavior belong in `verify(project=...)`.
  */
 
 import { execFile } from "node:child_process";
@@ -26,6 +27,7 @@ import { basename, dirname, join, resolve } from "node:path";
 import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Text } from "@earendil-works/pi-tui";
 import { Type } from "typebox";
+import { checkPins, renderPinReport, type PinReport } from "./pins.ts";
 
 const run = promisify(execFile);
 const TIMEOUT_MS = 180_000;
@@ -58,6 +60,7 @@ interface CompileDetails {
 	timeout: boolean;
 	stdout: string;
 	stderr: string;
+	pins?: PinReport;
 }
 
 async function isFile(p: string): Promise<boolean> {
@@ -274,7 +277,8 @@ export default function (pi: ExtensionAPI) {
 		description:
 			"Build an Arduino sketch with arduino-cli and return the compiler's verdict. " +
 			"Applies the <name>/<name>.ino layout rule, takes the FQBN from devices/*.txt or BRIEF.md, " +
-			"and returns the real error text. Use it instead of claiming code should compile.",
+			"and returns the real error text. A green build also checks the sketch's pins against the board " +
+			"sheet (PINS: PASS/FAIL; non-GPIO projects skip). Use it instead of claiming code should compile.",
 		promptSnippet: "compile: build an Arduino sketch and report pass/fail",
 		promptGuidelines: [
 			"After writing firmware, run compile and fix the error it names. Never answer 'it should compile'.",
@@ -346,11 +350,33 @@ export default function (pi: ExtensionAPI) {
 			const summary = /Sketch uses .*?bytes.*\n(?:Global variables use .*?bytes)?/m.exec(stdout)?.[0];
 			const next = passed ? null : hint(stderr);
 
+			let pins: PinReport | undefined;
+			if (passed) {
+				try {
+					pins = await checkPins(projectRoot, {
+						sketch: join(sketch.dir, `${basename(sketch.dir)}.ino`),
+					});
+					details.pins = pins;
+				} catch (err) {
+					pins = {
+						verdict: "FAIL",
+						reason: `pin check could not run: ${String((err as Error).message ?? err)}`,
+						sheet: null,
+						sketches: [],
+						uses: 0,
+						allowed: [],
+						findings: [],
+					};
+					details.pins = pins;
+				}
+			}
+
 			const header =
 				`COMPILE: ${passed ? "PASS" : `FAIL (exit ${exitCode})`}\n` +
 				`SKETCH: ${sketch.dir}\n` +
 				`FQBN: ${fqbn}` +
 				(sketch.moved ? `\nMOVED: ${sketch.moved}` : "") +
+				(pins ? `\n${renderPinReport(pins)}` : "") +
 				"\n\n";
 			const footer = [
 				summary ? `\n\n${summary}` : "",
@@ -374,6 +400,11 @@ export default function (pi: ExtensionAPI) {
 
 			let s = d.passed ? theme.fg("success", "PASS") : theme.fg("error", `FAIL (exit ${d.exitCode})`);
 			s += theme.fg("dim", ` · ${d.fqbn}`);
+			if (d.pins && d.pins.verdict !== "SKIP") {
+				s += d.pins.verdict === "PASS"
+					? theme.fg("success", " · pins ok")
+					: theme.fg("error", " · pins FAIL");
+			}
 			if (d.moved) s += theme.fg("warning", " · moved to sketch dir");
 			if (expanded && !d.passed) {
 				for (const line of (d.stderr || d.stdout).split("\n").slice(0, 20)) {

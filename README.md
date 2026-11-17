@@ -16,13 +16,13 @@ stack is built on: *the model must never be the judge of its own output.*
 
 ```
 MANIFEST.md            every version pin + why it is pinned   ← read this first
-harness/extensions/    the 9 Pi extensions (the actual IP)
+harness/extensions/    the Pi extensions (the actual IP)
 harness/models.json    provider, model, context window, sampling
 harness/pi-AGENTS.md   the harness rules (short on purpose — every line costs per turn)
 harness/settings.json  pi's own settings
 systemd/               the shim's user unit
 tools/                 Ollama /v1 shim, raise-context.sh, board_meta.py, board_sheet.py (fact sheets)
-tests/                 local-agent suite (snapshot) + extensions/run-checks.sh (13 seam checks) + tools/run-checks.sh (11 board-sheet checks)
+tests/                 local-agent suite (snapshot) + extensions/run-checks.sh (seam checks) + tools/run-checks.sh (board-sheet checks)
 grader/                the worked example: CW filter + deterministic grader + mutants
 docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 ```

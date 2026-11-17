@@ -25,6 +25,7 @@ the same commit.
 | I4a | Research guard: `webfetch` refuses PDF/binary bodies | a served `%PDF` is refused before decode; text/HTML still works | done |
 | I4b | Compile gate + project gates + tool contract | `compile` builds `firmware/<n>/<n>.ino` with the sheet's FQBN and returns the compiler verdict; `verify(project=...)` runs `gates.json`; no absolute host paths in `pi-AGENTS.md`; `tests/extensions/run-checks.sh` green | done |
 | I4c | Board fact-sheet generator | `tools/board_sheet.py --board <id>` emits `devices/<board>.txt` from `refs/boards` + `arduino-cli board listall` (label→GPIO, FQBN, logic, ADC), UNKNOWN where unsourced; `tests/tools/run-checks.sh` green | done |
+| I4d | Pin gate: sketch pins vs the board sheet | `compile` reports `PINS: PASS/FAIL/SKIP`; GPIO6-11 (ESP8266 flash) and pins not on the sheet fail; labels resolve (D8→GPIO0); non-GPIO projects skip; `tests/extensions/run-checks.sh` green | done |
 | I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | pending |
 | I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | pending |
 | I7 | Two end-to-end runs on e4b | MCU firmware task + basic Linux app, natural prompt to gated artifact; iterations-to-green logged | pending |
@@ -84,6 +85,19 @@ invented. `arduino-cli` spells the Uno "Arduino UNO", so name matching is case-i
 single-loose-hit rule; no CLI means `FQBN: UNKNOWN`, never a guess. `tests/tools/run-checks.sh` has 11
 checks (sourced FQBN, label→GPIO, no invented ADC range, UNKNOWN fallback, `--out`, bad board id).
 
+### I4d — pin gate, with a non-GPIO bypass
+
+A green build is not a correct pin map: `LiquidCrystal lcd(8, 9, 4, 5, 6, 7)` compiled on the D1,
+where 8/9 are not pins on the board and 6-11 are the SPI flash. `pins.ts` parses the board sheet
+(label→GPIO, `RESERVED: GPIO6-11`), extracts pin uses from the sketch (pin/digital/analog calls,
+`attachInterrupt`, Servo/Wire/SPI, LiquidCrystal/SoftwareSerial constructors), resolves sketch
+constants, and fails any pin that is reserved, absent from the sheet, or unresolvable. `compile` runs
+it after a green build and prints `PINS: ...`; the `pincheck` tool runs it alone.
+
+The bypass is structural, not a flag: no board sheet with a `PINS` section, no `.ino`, or no pin
+calls means `SKIP`. A Python/Linux-app project has none of those, so it pays nothing. Fixture tests
+cover both directions, including run 1's exact constructor (FAIL) and run 3's GPIO list (PASS).
+
 ### I5 — empty final answer
 Symptom from the 2026-11-14 run: `content: []`, 1 output token, `stopReason: stop`. Replay the saved
 request shape through the shim with instrumentation (`finish_reason`, `max_tokens`, template
@@ -122,6 +136,9 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
   Fresh anonymous clone: extension checks 13/13, bootstrap rerun 0 actions, `@STACK_DIR@` substituted.
   brain1 pulled the same commit: config rerun 0 actions, extension checks 13/13 (compile PASS on
   `esp8266:esp8266:d1` with the real core). Next: I4c.
+- 2026-11-16 — I4d done: the pin gate. `compile` now prints `PINS: PASS/FAIL/SKIP`; `pincheck` runs the
+  check alone; auto-SKIP when there is no sheet/sketch/pin use. Fixtures include run 1's `lcd(8,9,4,5,6,7)`
+  (FAIL) and run 3's `lcd(0,2,4,14,12,13)` (PASS). All extension checks green. Next: I5.
 - 2026-11-16 — brain1 rerun of the VMA203 scenario (same prompt, project layout), three runs. Run 1 read
   the sheets, wrote one sketch and compiled first try with zero web calls (~5.9k input/turn) — but passed
   the manual's Uno numbers (8,9,4,5,6,7) to LiquidCrystal; GPIO8/9 are flash pins and it still compiled.

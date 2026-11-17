@@ -27,6 +27,12 @@ import yaml
 REPO = Path(__file__).resolve().parent.parent
 REFS = REPO / "refs" / "boards"
 
+# Platform pins that must not be driven. Source: the vendor datasheet cited in
+# refs/boards/<id>/provenance.json — ESP8266EX ties GPIO6-11 to the SPI flash.
+RESERVED = {
+    "esp8266": ("6-11", "SPI flash — Espressif ESP8266EX datasheet"),
+}
+
 
 def find_cli():
     candidates = [os.environ.get("ARDUINO_CLI"), shutil.which("arduino-cli")]
@@ -107,6 +113,12 @@ def render(board_id, spec, pins_doc, fqbn):
         f"RAM: {human_bytes(spec.get('ram_bytes'))}",
         "ADC: " + (f"pins {', '.join(adc)}; reference range UNKNOWN — do not assume 5 V" if adc else "none in the ref"),
         "TOOLCHAIN: arduino-cli compile --fqbn " + (fqbn or "<FQBN>"),
+    ]
+    arch = platform.split("@")[0]
+    if arch in RESERVED:
+        rng, why = RESERVED[arch]
+        lines.append(f"RESERVED: GPIO{rng} ({why}) — never use these")
+    lines += [
         "",
         f"PINS (board label -> GPIO; source: {pins[0]['source'].split(':')[0] if pins else 'refs'})",
     ]

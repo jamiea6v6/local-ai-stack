@@ -47,7 +47,7 @@ export const Type = {
 EOF
 
 cp "$REPO/harness/extensions/compile.ts" "$REPO/harness/extensions/verify.ts" \
-   "$REPO/harness/extensions/webfetch.ts" "$WORK/"
+   "$REPO/harness/extensions/webfetch.ts" "$REPO/harness/extensions/pins.ts" "$WORK/"
 cp "$REPO/tests/extensions/cases.mjs" "$WORK/test.mjs"
 
 node22() { "$1" -e 'process.exit(Number(process.versions.node.split(".")[0]) >= 22 ? 0 : 1)' >/dev/null 2>&1; }

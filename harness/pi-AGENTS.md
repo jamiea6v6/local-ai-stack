@@ -59,6 +59,11 @@ If the project needs a board sheet, generate it instead of typing pins:
 `@STACK_DIR@/tools/board_sheet.py --board wemos-d1 --out devices/wemos-d1.txt`
 (it fills the FQBN too).
 
+A green build also checks the pins against the sheet. `compile` reports
+`PINS: PASS/FAIL/SKIP`; `pincheck` runs that check alone. Labels resolve through
+the sheet, so `D8` becomes GPIO0; GPIO6-11 (ESP8266 flash) and any pin not on the
+sheet fail. Projects with no board sheet or no sketch SKIP — that is normal.
+
 Never answer "it should compile" — run it and fix the error the compiler names.
 
 ## Grade your own work with `verify`
