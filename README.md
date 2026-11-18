@@ -22,7 +22,7 @@ harness/pi-AGENTS.md   the harness rules (short on purpose — every line costs 
 harness/settings.json  pi's own settings
 systemd/               the shim's user unit
 tools/                 Ollama /v1 shim, raise-context.sh, board_meta.py, board_sheet.py (fact sheets)
-tests/                 local-agent suite (snapshot) + extensions/run-checks.sh (seam checks) + tools/run-checks.sh (board-sheet checks)
+tests/                 local-agent suite (snapshot + refreshed) + measurement runner + extension/tool/shim gates
 grader/                the worked example: CW filter + deterministic grader + mutants
 docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 ```
@@ -116,6 +116,18 @@ script -qec "pi -p --model ollama/gemma4:e4b-it-qat '<prompt>'" /dev/null
 
 That is how the 2026-11-16 end-to-end check ran: prompt → `firmware/blink/blink.ino` → `compile` PASS on
 `esp8266:esp8266:d1`, with the FQBN read from `devices/wemos-d1.txt` and no web search.
+
+## Running the measurement baseline
+
+```bash
+./tests/measurement/run-checks.sh
+./tests/measurement/run-baseline.sh --host-role p106
+```
+
+The runner executes the pre-registered suite in fresh PTY sessions, grades CW candidates with the
+deterministic spec, feeds grader failures back into the same session (bounded retries), and writes a
+sanitized JSON report under `tests/results/`. Tests A–F x3 and five CW sessions are the baseline;
+the refreshed prompts and fixed ground truth live in `tests/REFRESHED_SUITE.md`.
 
 ## Review fixes (2026-11-16)
 

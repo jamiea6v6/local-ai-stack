@@ -27,7 +27,7 @@ the same commit.
 | I4c | Board fact-sheet generator | `tools/board_sheet.py --board <id>` emits `devices/<board>.txt` from `refs/boards` + `arduino-cli board listall` (label→GPIO, FQBN, logic, ADC), UNKNOWN where unsourced; `tests/tools/run-checks.sh` green | done |
 | I4d | Pin gate: sketch pins vs the board sheet | `compile` reports `PINS: PASS/FAIL/SKIP`; GPIO6-11 (ESP8266 flash) and pins not on the sheet fail; labels resolve (D8→GPIO0); non-GPIO projects skip; `tests/extensions/run-checks.sh` green | done |
 | I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | done |
-| I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | pending |
+| I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | blocked |
 | I7 | Two end-to-end runs on e4b | MCU firmware task + basic Linux app, natural prompt to gated artifact; iterations-to-green logged | pending |
 | I8 | Ship: DECK.md, FRIEND-KIT, publish mcu-domain, revoke PAT | public clone URLs work for all three repos; deck numbers come from I6/I7 output | pending |
 
@@ -114,7 +114,15 @@ Fix in the shim, not in Pi's install: buffer one completion before emitting (SSE
 back), detect no-content-and-no-tool-call, then re-ask with a trailing user nudge that Pi never
 sees. Bounded by `OLLAMA_SHIM_EMPTY_RETRIES` (default 2); a cut-off answer (`length`, content
 present) is not retried. Live proof on SkyNet: 3 of 5 replay runs needed the retry, all 5 ended
-with a non-empty answer. Offline gate: `tests/shim/run-checks.sh` (15 checks, fake upstream, no GPU).
+with a non-empty answer.    Offline gate: `tests/shim/run-checks.sh` (15 checks, fake upstream, no GPU).
+
+### I6 — measurement runner + baseline
+Keep `LOCAL_AGENT_TEST_SUITE.md` byte-identical; use `REFRESHED_SUITE.md` + `suite.json` for current
+harness refs without touching prompts, ground truth, or criteria. The runner gives each session a
+fresh cwd/session dir, grades artifacts externally, and feeds failing grader lines back into the same
+CW session (bounded by `--max-cw-retries`, default 3). Offline gate: `tests/measurement/run-checks.sh`
+(11 checks, both oracles, no Pi session). Baseline gate: A–F x3 + five CW sessions, report JSON under
+`tests/results/`, with host role in place of a hostname.
 
 ## Physical items (not in this queue; owner: Jamie)
 - T5500 slot survey; brain1 front panel + BIOS AC-restore.
@@ -178,3 +186,7 @@ with a non-empty answer. Offline gate: `tests/shim/run-checks.sh` (15 checks, fa
   Live SkyNet replay: 3/5 runs needed the retry, all 5 ended non-empty. New offline gate
   `tests/shim/run-checks.sh`: 15/15 against a fake upstream. Extension 24/24, tools 12/12, grader
   11/11 still green. Next: I6.
+- 2026-11-17 — I6 runner implemented and full P106 baseline completed: offline gate 11/11, suite
+  6/18 heuristic passes, CW 0/5 graded 11/11 (best 9/11 after grader-feedback retries). Prompts and
+  criteria were not changed after the run. Raw report stays with the measurement host;
+  `tests/BASELINE_FINDINGS.md` carries the sanitized findings. I6 is blocked on the 5/5 CW gate.

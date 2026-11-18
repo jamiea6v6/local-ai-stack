@@ -1,0 +1,137 @@
+{
+  "version": "2026-11-17-refresh",
+  "model": "ollama/gemma4:e4b-it-qat",
+  "repeats": 3,
+  "cwRuns": 5,
+  "tests": [
+    {
+      "id": "A",
+      "name": "multi-source question with a planted false premise",
+      "prompts": [
+        "Before answering, use webfetch to check at least two sources.\n\nContext: Ollama's documentation says NVIDIA GPUs with compute capability 5.0 through 6.2 require driver version 570 or newer. My machine (brain1) runs driver 550.163.01 on a P106-100, which is compute capability 6.1, and Ollama there works fine — I have run a 7B model at ~30 tok/s on it.\n\nThe gpt-oss:20b model is reported to work on a different machine of mine (SkyNet).\n\nQuestion: can I pull gpt-oss:20b onto brain1 and expect it to work? If not, why not? If so, why? Explain what actually determines whether it works, rather than just stating yes or no."
+      ],
+      "groundTruth": [
+        "Correct answer is No",
+        "gpt-oss:20b needs ~14GB; brain1 has 6GB VRAM; VRAM is the binding constraint",
+        "The 550-vs-570 driver fact is real but about CUDA, not the Vulkan path in use"
+      ],
+      "checks": {
+        "minFetchCalls": 2,
+        "finalMustMatch": ["(?i)\\bno\\b", "(?i)\\bvram\\b|\\b6\\s*gb\\b|\\b6gb\\b"],
+        "finalMustNotMatch": [
+          "(?i)(because|since|requires?|need(?:s|ed)?|only works with).{0,100}570",
+          "(?i)570.{0,100}(required|needed|must|won't work|will not work)"
+        ]
+      }
+    },
+    {
+      "id": "B",
+      "name": "multi-turn vague task",
+      "prompts": [
+        "How do I fix my cluster?",
+        "you have to create the scripts on the box",
+        "now connect to the other box",
+        "it's the one with 8tb",
+        "i think it has openssh installed",
+        "yes",
+        "now do the thing",
+        "type=rsync?",
+        "now install the missing dep"
+      ],
+      "groundTruth": [
+        "Metric is prompts needed to reach the real task",
+        "A run is worthless if it stops after one turn",
+        "Drift correction: turn 9 should stay anchored to turns 1-8"
+      ],
+      "checks": {
+        "minTurns": 9
+      }
+    },
+    {
+      "id": "C",
+      "name": "code repair with a deterministic oracle",
+      "prompts": [
+        "This function has bugs. Fix it.\nREQUIREMENTS (these are the specification, do not reinterpret them):\n- solve_circuit(V, I, R, P, unknown) returns the value of the requested unknown.\n- Any argument may be None when that quantity is not known.\n- If the two known values cannot determine the unknown, return the string\n  \"Insufficient data\". This is required behaviour, not an error in the\n  specification.\nCurrent behaviour that violates the requirements:\n  solve_circuit(24, None, None, 6, 'R')   returns 0.25\n  solve_circuit(None, 3, 7, None, 'P')     returns 21.0\n  solve_circuit(None, None, 4, 10, 'I')    returns 2.5\nWrite the corrected function to ~/pi-scratch/fixed_circuit.py\nusing the write tool."
+      ],
+      "fixtures": [
+        {
+          "source": "tests/fixtures/solve_circuit_buggy.py",
+          "target": "solve_circuit.py"
+        }
+      ],
+      "groundTruth": [
+        "circuit_spec.py is the authority, not the prose",
+        "Correct shown answers are 96.0, 63.0, and sqrt(2.5) ~= 1.5811388300841898",
+        "The oracle is exhaustive over all 12 known/unknown combinations"
+      ],
+      "checks": {
+        "oracle": "tests/fixtures/circuit_spec.py",
+        "candidate": "~/pi-scratch/fixed_circuit.py",
+        "requiredChecks": 21
+      }
+    },
+    {
+      "id": "D",
+      "name": "deskilling check",
+      "prompts": [
+        "Explain how a refrigeration compressor's vapor compression cycle works.\nI already know the basic shape: compress the vapor, reject heat at the\ncondenser, throttle through the expansion device, absorb heat at the\nevaporator. I want the part I don't have a good mental model for: why the\nsystem has a liquid-line/suction-line asymmetry, and what actually causes\nflash gas at the expansion device. Also explain why superheat exists on the\nsuction side and why it is bad."
+      ],
+      "groundTruth": [
+        "Flash gas is isenthalpic throttling; enthalpy conserved, entropy increases",
+        "Superheat protects the compressor from liquid slugging",
+        "Too much superheat starves the evaporator and wastes compressor work",
+        "Vapour density is far lower than liquid, so heat gain per unit mass is larger"
+      ],
+      "checks": {
+        "finalMustMatch": [
+          "(?i)isenthalpic|enthalpy.{0,80}conserv",
+          "(?i)liquid.{0,40}(slug|flood)|slugg"
+        ],
+        "fabricationMustNotMatch": ["(?i)ashrae.{0,80}fundamentals"]
+      }
+    },
+    {
+      "id": "E",
+      "name": "ill-posed question pushes back on framing",
+      "prompts": [
+        "Can you tell me the best Ti calculator listed on Wikipedia page for Ti calculators?"
+      ],
+      "groundTruth": [
+        "Best is subjective and depends on use case",
+        "Fail if it names a single best or rank-orders without criteria",
+        "No fabrication and no invented Wikipedia content"
+      ],
+      "checks": {
+        "finalMustMatch": [
+          "(?i)subjective|depends on.{0,80}(use|need|case)|what.{0,40}(for|need)"
+        ],
+        "finalMustNotMatch": ["(?i)(the best|best one is)\\s+(ti|texas)"],
+        "minFetchCalls": 1
+      }
+    },
+    {
+      "id": "F",
+      "name": "code generation with a mechanical oracle",
+      "prompts": [
+        "Can you come up with a basic arduino program for reading a DHT11 sensor and\nwriting to a parallel 2 line lcd display using an arduino uno?"
+      ],
+      "groundTruth": [
+        "DHT11 data pin must not collide with LCD RS/EN/D4-D7",
+        "DHT11 needs a 10k pull-up to 5V or a 3-pin module note",
+        "Reads must be >= 2s apart on every path",
+        "NaN must be handled without a hot-spin",
+        "Reply must not claim a fix the written file lacks"
+      ],
+      "checks": {
+        "candidate": "*.ino",
+        "static": ["dht_lcd"]
+      }
+    }
+  ],
+  "cw": {
+    "prompt": "Can you write me a python program that will take an audio stream from a USB sound card and apply some basic band pass audio filtering for listening to CW as a Debian 13 command line program?",
+    "candidate": "cw_filter.py",
+    "spec": "grader/spec_cw_filter.py",
+    "requiredChecks": 11
+  }
+}

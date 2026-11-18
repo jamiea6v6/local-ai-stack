@@ -175,6 +175,23 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 | `tests/shim/run-checks.sh` | `54f1cc435e36592c` | NEW: offline shim suite driver (node >= 22, no Ollama/GPU/Pi session) |
 | `tests/shim/shim-checks.mjs` | `ca9df6535fbb6e10` | NEW: 15 checks against a fake upstream — retry, nudge, both wire paths, bounded retries, reasoning-only, length preserved |
 
+### §4c — measurement runner (2026-11-17)
+
+| File | sha256 (first 16) | Change |
+|---|---|---|
+| `tests/suite.json` | `f8dfb5bca12481ca` | NEW: machine-readable A–F prompts, fixed ground truth, checks, and the CW prompt |
+| `tests/REFRESHED_SUITE.md` | `611d9742caf0f15e` | NEW: current-stack suite; prompts/criteria unchanged from the preserved snapshot |
+| `tests/measurement/run-checks.sh` | `07fe889dd737c5ed` | NEW: node>=22 wrapper for the offline instrument checks |
+| `tests/measurement/checks.mjs` | `2b31458a652265e0` | NEW: 11 checks — suite shape, fixtures, both oracles, runner syntax |
+| `tests/measurement/run-baseline.sh` | `6adc80e754684c46` | NEW: node>=22 wrapper for the live runner |
+| `tests/measurement/run-baseline.mjs` | `c9b76dbb1b7df563` | NEW: fresh PTY sessions, external grading, grader-feedback retries, sanitized JSON report |
+| `tests/fixtures/circuit_spec.py` | `482f3ee0bf659207` | NEW: 21-case circuit oracle copied from the pre-registered suite |
+| `tests/fixtures/solve_circuit_buggy.py` | `a613e175216e247c` | NEW: seeded-broken candidate that fails the oracle |
+| `tests/fixtures/solve_circuit_fixed.py` | `4d9185ebec146379` | NEW: known-good candidate; 21/21 (oracle falsification only) |
+| `tests/README.md` | `bc99b97808b40e5e` | documents refreshed suite, runner commands, and baseline gate |
+| `README.md` | `5351c40af36e2853` | documents `tests/measurement/` and the baseline command |
+| `tests/BASELINE_FINDINGS.md` | `10d67d43a8f62c0` | sanitized I6 result: suite 6/18, CW 0/5; raw report stays off-repo |
+
 ---
 
 ## 5. Known drift risk — read before deploying
@@ -196,7 +213,7 @@ deployed unit's `ExecStart`, hashes the script it names, and fails if it differs
 | `bootstrap.sh`, `verify-stack.sh` | install + prove: node/pi/harness/shim/arduino/venv, real completion through the shim, `100% GPU` + 32768 ctx attribution, `--profile p106|gpu|cpu` | done 2026-11-16 |
 | `DECK.md` | the explainable presentation (house deck format: `## Slide N —`) | Thursday |
 | the grader example | `grader/` now holds `spec_cw_filter.py` + `stub_pyaudio.py` + `mutants/` (moved in from the old `cw-dsp` repo) | done |
-| updated test suite | `tests/LOCAL_AGENT_TEST_SUITE.md` is a snapshot; its harness refs are stale | Sunday/Monday |
+| updated test suite | `tests/REFRESHED_SUITE.md` + `tests/suite.json` + `tests/measurement/` replace the stale snapshot refs | done 2026-11-17 |
 | the three harness bugs | `verify_package` 404-vs-error, the 8192/32768 window truth, the empty final answer | 3 of 3 fixed — empty final answer 2026-11-17 (shim retry) |
 
 ---
