@@ -9,7 +9,7 @@ set -euo pipefail
 
 REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 PY="$REPO/grader/.venv/bin/python"
-[ -x "$PY" ] || PY=python3
+[ -x "$PY" ] || PY=$(command -v python3)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 

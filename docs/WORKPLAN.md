@@ -233,3 +233,6 @@ CW session (bounded by `--max-cw-retries`, default 3). Offline gate: `tests/meas
   the public clone URLs, removed PAT revocation from scope (tracked separately with the MCP setup),
   and sanitized host paths/IPs from the public docs before publication. Published `brain1-stack` and
   `mcu-domain` as public GitHub repos alongside the existing `local-ai-stack`.
+- 2026-11-18 13:46 — fresh-clone verification found the tools gate falling back to a bare `python3`
+  name that vanished under its own `env -i` check. Resolved the fallback to an absolute path and
+  republished; the measurement gate still needs the bootstrapped venv for numpy/scipy.

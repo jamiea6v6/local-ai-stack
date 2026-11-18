@@ -200,7 +200,7 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 | `tests/i7/session_evidence.py` | `2a807f4a34a18b10` | NEW: mode 100755; reads Pi toolResult records and asserts `COMPILE: PASS` + `PINS: PASS` for I7a |
 | `docs/I7_TASKS.md` | `75f7409f5ec56dd6` | adds executable operator interface and mechanics guardrails; prompts/gates/retry cap/report fields unchanged |
 | `docs/LOCAL_MODEL_RUNBOOK.md` | `553ab77a85f94e68` | points I7 execution to the authoritative task file and guardrails |
-| `docs/WORKPLAN.md` | `38c795cb371fcf42` | logs operator sessions through I8 publication |
+| `docs/WORKPLAN.md` | `2aaf93a7b4b66639` | logs operator sessions through I8 publication |
 
 ---
 
