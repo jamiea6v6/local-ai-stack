@@ -24,16 +24,51 @@ Stop immediately if:
 For each failed attempt, feed the exact gate output back to the same Pi session and ask it to fix the
 artifact. Do not restate or soften the task.
 
+## Operator execution interface
+
+Use these helpers on Brain1; do not infer a different Pi command. They implement the same PTY
+invocation as `tests/measurement/run-baseline.mjs:374`. The default subject model is
+`ollama/gemma4:e4b-it-qat`; do not override `--model`.
+
+```bash
+PI_TURN=~/projects/local-ai-stack/tests/i7/pi_turn.py
+EVIDENCE=~/projects/local-ai-stack/tests/i7/session_evidence.py
+```
+
+First turn:
+
+```bash
+python3 "$PI_TURN" --work "$WORK" --prompt-file "$WORK/prompt.txt" --session-id "$SID"
+```
+
+Retry in the same Pi session:
+
+```bash
+python3 "$PI_TURN" --work "$WORK" --prompt-file "$WORK/retry.txt" --session-id "$SID" --resume
+```
+
+These commands are execution mechanics only; prompts, gates, retry cap, and report fields below are
+unchanged.
+
 ## I7a — MCU firmware task
 
 Fresh work dir on Brain1: `~/local-results/i7-mcu/work`.
 
-Before prompting Pi, generate the board sheet in that work dir:
+Prepare it and generate the board sheet before prompting Pi:
 
 ```bash
+WORK=~/local-results/i7-mcu/work
+SID=i7a
+rm -rf "$WORK"
+mkdir -p "$WORK/devices"
 cd ~/projects/local-ai-stack
 python3 tools/board_sheet.py --board wemos-d1-mini \
-  --out ~/local-results/i7-mcu/work/devices/wemos-d1-mini.txt
+  --out "$WORK/devices/wemos-d1-mini.txt"
+cat > "$WORK/prompt.txt" <<'EOF'
+Write a Wemos D1 Mini sketch in this directory that reads a DHT11 on D2, blinks the D4 LED every 2
+seconds, and prints NaN-safe readings to serial. Use the compile and pins tools. Iterate until
+compile succeeds and PINS: PASS. Do not use GPIO6-11. Write the final sketch to firmware.ino.
+EOF
 ```
 
 Frozen prompt to Brain1 Pi:
@@ -45,7 +80,13 @@ compile succeeds and PINS: PASS. Do not use GPIO6-11. Write the final sketch to 
 ```
 
 External gate: compile exit 0 and Pi tool output contains `PINS: PASS`. The operator verifies both
-from tool output, not from the model's claim. Max 3 attempts.
+from tool output, not from the model's claim:
+
+```bash
+python3 "$EVIDENCE" --session-dir "$WORK/sessions"
+```
+
+Exit 0 means `COMPILE_PASS=true` and `PINS_PASS=true`. Max 3 attempts.
 
 Retry prompt:
 
@@ -60,6 +101,20 @@ Do not change the task statement.
 
 Fresh work dir on Brain1: `~/local-results/i7-linux/work`.
 
+Prepare it before prompting Pi:
+
+```bash
+WORK=~/local-results/i7-linux/work
+SID=i7b
+rm -rf "$WORK"
+mkdir -p "$WORK"
+cat > "$WORK/prompt.txt" <<'EOF'
+Write app.py using only the Python standard library. CLI: app.py FILE reads one integer per line and
+prints exactly: count=N min=N max=N mean=N.N where mean is one decimal. Add --help. Do not print
+anything else on stdout for the normal path.
+EOF
+```
+
 Frozen prompt to Brain1 Pi:
 
 ```text
@@ -71,6 +126,7 @@ anything else on stdout for the normal path.
 External gate on Brain1:
 
 ```bash
+cd "$WORK"
 printf '20\n22\n18\n' > input.txt
 python3 app.py input.txt
 # expected exactly: count=3 min=18 max=22 mean=20.0

@@ -193,3 +193,6 @@ CW session (bounded by `--max-cw-retries`, default 3). Offline gate: `tests/meas
 - 2026-11-18 — I7 pre-registered in `docs/I7_TASKS.md`: Skynet GPT-OSS is the operator, Brain1 Pi/e4b
   is the subject; two frozen tasks (MCU firmware, basic Linux app) with external gates, 3-attempt cap,
   and attempts-to-green logging. Execution pending.
+- 2026-11-18 09:29 — first operator session aborted before task execution because the Pi invocation
+  interface was implicit. Added helper commands to `docs/I7_TASKS.md` and ran a fake-Pi smoke test;
+  prompts, gates, retry cap, and report fields are unchanged.

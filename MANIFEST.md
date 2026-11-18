@@ -192,6 +192,15 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 | `README.md` | `5351c40af36e2853` | documents `tests/measurement/` and the baseline command |
 | `tests/BASELINE_FINDINGS.md` | `10d67d43a8f62c0` | sanitized I6 result: suite 6/18, CW 0/5; raw report stays off-repo |
 
+### §4d — I7 operator execution helpers (2026-11-18)
+
+| File | sha256 (first 16) | Change |
+|---|---|---|
+| `tests/i7/pi_turn.py` | `ff9729f861ff62d6` | NEW: PTY Pi turn with the runner's exact `--session-id`/`--session` flag split; prompt supplied by file |
+| `tests/i7/session_evidence.py` | `2a807f4a34a18b10` | NEW: reads Pi toolResult records and asserts `COMPILE: PASS` + `PINS: PASS` for I7a |
+| `docs/I7_TASKS.md` | `e44d1a8f7e1c2a55` | adds executable operator interface and exact prep commands; prompts/gates/retry cap/report fields unchanged |
+| `docs/WORKPLAN.md` | `5a3c302c061d473a` | logs the aborted operator session and helper fix |
+
 ---
 
 ## 5. Known drift risk — read before deploying
