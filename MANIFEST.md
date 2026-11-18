@@ -171,6 +171,9 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 | `refs/boards/wemos-d1/pins.yaml` | `fd171b27cfa3b633` | D-label→GPIO map extracted from `variants/d1/pins_arduino.h` (24 pins) |
 | `refs/boards/wemos-d1/specs.yaml` | `c428e56c86c7f70d` | R1 specs: esp8266, 3.3 V, 4 MiB / 80 KiB |
 | `tests/tools/run-checks.sh` | `b0ed20cb07b4ab7c` | 12 board-sheet checks: FQBN sourcing, label→GPIO, label-vs-pin warning, UNKNOWN fallback |
+| `tools/ollama-v1-shim.mjs` | `124e65ef47c0fc80` | empty-answer recovery: buffer one completion, retry a no-content/no-tool turn with a trailing nudge (bounded), emit the recovered chunks; keep finish_reason/length/abort/id rules |
+| `tests/shim/run-checks.sh` | `54f1cc435e36592c` | NEW: offline shim suite driver (node >= 22, no Ollama/GPU/Pi session) |
+| `tests/shim/shim-checks.mjs` | `ca9df6535fbb6e10` | NEW: 15 checks against a fake upstream — retry, nudge, both wire paths, bounded retries, reasoning-only, length preserved |
 
 ---
 
@@ -194,7 +197,7 @@ deployed unit's `ExecStart`, hashes the script it names, and fails if it differs
 | `DECK.md` | the explainable presentation (house deck format: `## Slide N —`) | Thursday |
 | the grader example | `grader/` now holds `spec_cw_filter.py` + `stub_pyaudio.py` + `mutants/` (moved in from the old `cw-dsp` repo) | done |
 | updated test suite | `tests/LOCAL_AGENT_TEST_SUITE.md` is a snapshot; its harness refs are stale | Sunday/Monday |
-| the three harness bugs | `verify_package` 404-vs-error, the 8192/32768 window truth, the empty final answer | 2 of 3 fixed 2026-11-16; empty-final-answer still open |
+| the three harness bugs | `verify_package` 404-vs-error, the 8192/32768 window truth, the empty final answer | 3 of 3 fixed — empty final answer 2026-11-17 (shim retry) |
 
 ---
 

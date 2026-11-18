@@ -26,7 +26,7 @@ the same commit.
 | I4b | Compile gate + project gates + tool contract | `compile` builds `firmware/<n>/<n>.ino` with the sheet's FQBN and returns the compiler verdict; `verify(project=...)` runs `gates.json`; no absolute host paths in `pi-AGENTS.md`; `tests/extensions/run-checks.sh` green | done |
 | I4c | Board fact-sheet generator | `tools/board_sheet.py --board <id>` emits `devices/<board>.txt` from `refs/boards` + `arduino-cli board listall` (label→GPIO, FQBN, logic, ADC), UNKNOWN where unsourced; `tests/tools/run-checks.sh` green | done |
 | I4d | Pin gate: sketch pins vs the board sheet | `compile` reports `PINS: PASS/FAIL/SKIP`; GPIO6-11 (ESP8266 flash) and pins not on the sheet fail; labels resolve (D8→GPIO0); non-GPIO projects skip; `tests/extensions/run-checks.sh` green | done |
-| I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | pending |
+| I5 | Empty final answer: repro + fix (only open P0) | replay reproduces `content: []`, fix yields non-empty content, regression test in `tests/` | done |
 | I6 | Measurement runner + baseline | refreshed suite (no 8192 refs), suite A–F x3, 5 fresh CW sessions each graded 11/11, report JSON | pending |
 | I7 | Two end-to-end runs on e4b | MCU firmware task + basic Linux app, natural prompt to gated artifact; iterations-to-green logged | pending |
 | I8 | Ship: DECK.md, FRIEND-KIT, publish mcu-domain, revoke PAT | public clone URLs work for all three repos; deck numbers come from I6/I7 output | pending |
@@ -99,9 +99,22 @@ calls means `SKIP`. A Python/Linux-app project has none of those, so it pays not
 cover both directions, including run 1's exact constructor (FAIL) and run 3's GPIO list (PASS).
 
 ### I5 — empty final answer
-Symptom from the 2026-11-14 run: `content: []`, 1 output token, `stopReason: stop`. Replay the saved
-request shape through the shim with instrumentation (`finish_reason`, `max_tokens`, template
-`<channel|>` artifact) before changing code.
+Symptom: `content: []`, `stopReason: stop`, no tool calls — Pi prints only "Command completed
+successfully" and the task dies. Captured from brain1's `vma203-hello` session JSONL
+(`13-11-26`, 12 output tokens, empty assistant content).
+
+Cause, isolated by replaying the exact request through a logging proxy between the shim and Ollama:
+with `think:false` and the full ~9.5K-char Pi system prompt, gemma4:e4b-it-qat emits a channel
+artifact and stops — 12 tokens, `content: ""`, no tool call, `done_reason: stop`. Reproduced 8/8;
+a naive identical retry failed 10/10 (deterministic, not flaky). Thinking on, a raised temperature,
+or a one-line trailing nudge all broke the loop (nudge 3/3). The model was not being swallowed by
+Pi: Ollama itself returned empty content.
+
+Fix in the shim, not in Pi's install: buffer one completion before emitting (SSE cannot be taken
+back), detect no-content-and-no-tool-call, then re-ask with a trailing user nudge that Pi never
+sees. Bounded by `OLLAMA_SHIM_EMPTY_RETRIES` (default 2); a cut-off answer (`length`, content
+present) is not retried. Live proof on SkyNet: 3 of 5 replay runs needed the retry, all 5 ended
+with a non-empty answer. Offline gate: `tests/shim/run-checks.sh` (15 checks, fake upstream, no GPU).
 
 ## Physical items (not in this queue; owner: Jamie)
 - T5500 slot survey; brain1 front panel + BIOS AC-restore.
@@ -157,3 +170,11 @@ request shape through the shim with instrumentation (`finish_reason`, `max_token
 - 2026-11-16 — board_meta became host-independent: digests drop `extra.time.*`, normalize `<HOME>`/`<CLI_DIR>`, ignore
   `runtime.ide.path`; `--seed-cache` fills the remote cache so a fresh box can `--check`; pio falls back across
   `espressif32*` dirs. Proven by brain1 `--check` green against refs generated on SkyNet.
+- 2026-11-17 — I5 done: isolated the empty final answer by proxying the shim↔Ollama traffic and
+  replaying brain1's `vma203-hello` prompt — Ollama itself returned 12 output tokens with
+  `content: ""`, no tool call, `done_reason: stop` (8/8 on the full system prompt; an identical
+  retry failed 10/10). The shim now buffers one completion, detects no-content/no-tool-call, and
+  re-asks with a trailing nudge invisible to Pi (bounded 2 retries; `length` answers untouched).
+  Live SkyNet replay: 3/5 runs needed the retry, all 5 ended non-empty. New offline gate
+  `tests/shim/run-checks.sh`: 15/15 against a fake upstream. Extension 24/24, tools 12/12, grader
+  11/11 still green. Next: I6.

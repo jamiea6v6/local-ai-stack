@@ -136,8 +136,9 @@ A static review of the capture found real defects; these are patched here, not j
   truncation, `max_tokens` maps to `num_predict`, abandoned clients abort the upstream request,
   unhandled-rejection paths were closed, tool-call ids/indices no longer collide, and `developer`
   messages are not demoted to `user`.
-
-Still open: the empty-final-answer case (`MANIFEST.md` §6).
+- The shim also recovers the empty final answer: a completion with no content and no tool call is
+  re-asked (bounded, with a trailing nudge not visible to Pi) instead of ending the turn as
+  "Command completed successfully". Regression gate: `./tests/shim/run-checks.sh`.
 
 ## Provenance
 

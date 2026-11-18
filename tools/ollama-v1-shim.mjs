@@ -42,6 +42,15 @@ const PORT = Number(process.env.OLLAMA_SHIM_PORT || 11435);
 const TARGET = process.env.OLLAMA_SHIM_TARGET || "http://127.0.0.1:11434";
 const CTX = Number(process.env.OLLAMA_SHIM_CTX || 32768);
 
+// A small model sometimes ends a turn after emitting only a channel artifact:
+// no content, no tool call, done_reason "stop". Pi assembles that into an empty
+// final answer ("Command completed successfully") and the task silently dies.
+// Measured on gemma4:e4b-it-qat with think:false: 12 output tokens, empty
+// content, 0 tool calls, reproducible 8/8 on the same request. Re-asking with a
+// one-line nudge makes the model call its tool (3/3); keep the retry bounded.
+const EMPTY_RETRIES = Number(process.env.OLLAMA_SHIM_EMPTY_RETRIES ?? 2);
+const EMPTY_NUDGE = "Reply now with your final answer.";
+
 // Tool-call ids must be unique across the whole process. `call_${i}` made
 // every turn's first call `call_0`, so a client matching by id could pair a
 // result with the wrong call.
@@ -51,6 +60,32 @@ async function readBody(req) {
 	const chunks = [];
 	for await (const c of req) chunks.push(c);
 	return Buffer.concat(chunks).toString("utf8");
+}
+
+/** True only when the model produced something the client can show or run. */
+function hasAssistantOutput(native) {
+	const m = native?.message || {};
+	return Boolean(
+		(typeof m.content === "string" && m.content.trim()) ||
+			(Array.isArray(m.tool_calls) && m.tool_calls.length),
+	);
+}
+
+/** Re-ask the same question with a trailing nudge (not visible to the client). */
+function withNudge(native) {
+	return {
+		...native,
+		messages: [...(native.messages || []), { role: "user", content: EMPTY_NUDGE }],
+	};
+}
+
+function postChat(native, signal) {
+	return fetch(`${TARGET}/api/chat`, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify(native),
+		signal,
+	});
 }
 
 /** Convert an OpenAI-style request body into Ollama's native /api/chat body. */
@@ -260,11 +295,20 @@ const server = createServer(async (req, res) => {
 		});
 
 		if (!body.stream) {
-			const nativeJson = await upstream.json();
+			let nativeJson = await upstream.json();
 			if (nativeJson.error) {
 				res.writeHead(500, { "content-type": "application/json" });
 				res.end(JSON.stringify({ error: nativeJson.error }));
 				return;
+			}
+			for (let i = 0; i < EMPTY_RETRIES && !hasAssistantOutput(nativeJson); i++) {
+				const retried = await postChat(withNudge(native), upstreamAbort.signal);
+				nativeJson = await retried.json();
+				if (nativeJson.error) {
+					res.writeHead(500, { "content-type": "application/json" });
+					res.end(JSON.stringify({ error: nativeJson.error }));
+					return;
+				}
 			}
 			res.writeHead(200, { "content-type": "application/json" });
 			res.end(JSON.stringify(toOpenAI(nativeJson, body.model)));
@@ -284,18 +328,10 @@ const server = createServer(async (req, res) => {
 
 		const id = `chatcmpl-${Date.now()}`;
 		const created = Math.floor(Date.now() / 1000);
-		let usage = null;
-		let sawToolCall = false;
-		let doneReason = null;
-		// Running across events: `call_${i}` restarted at 0 every event, and a
-		// stream index that restarts merges calls that arrive in separate events.
-		let streamToolIndex = 0;
-
-		const decoder = new TextDecoder();
-		let buffer = "";
-		const reader = upstream.body.getReader();
-
-		const sendChunk = (delta, finishReason) => {
+		// Buffer one completion before emitting: an empty answer is only visible
+		// after the done event, and SSE cannot be taken back. Chunks here are tens
+		// of tokens, so the buffering cost is not measurable.
+		const sendChunk = (state, delta, finishReason) => {
 			const payload = {
 				id,
 				object: "chat.completion.chunk",
@@ -309,35 +345,48 @@ const server = createServer(async (req, res) => {
 					},
 				],
 			};
-			res.write(`data: ${JSON.stringify(payload)}\n\n`);
+			state.outbox.push(`data: ${JSON.stringify(payload)}\n\n`);
 		};
 
-		// Returns true when the upstream sent an error and the response is finished.
-		const handleEvent = (evt) => {
+		// A stream index that restarts merges tool calls that arrive in separate
+		// events, so it lives in the state reset for each retry attempt.
+		const newState = () => ({
+			usage: null,
+			sawToolCall: false,
+			sawContent: false,
+			doneReason: null,
+			streamToolIndex: 0,
+			errored: null,
+			outbox: [],
+		});
+
+		// Returns true when the upstream sent an error and collection should stop.
+		const handleEvent = (evt, state) => {
 			if (evt.error) {
-				res.write(`data: ${JSON.stringify({ error: evt.error })}\n\n`);
-				res.end();
+				state.errored = evt.error;
 				return true;
 			}
 			if (evt.message?.content) {
-				sendChunk({ content: evt.message.content }, null);
+				state.sawContent = true;
+				sendChunk(state, { content: evt.message.content }, null);
 			}
 			// Pass reasoning through in the field the client reads. The harness
 			// sets think:false, so this should not fire, but if thinking is ever
 			// enabled the reasoning must not be silently dropped or the answer
-			// text will not match.
+			// text will not match. Reasoning alone does NOT count as output: the
+			// client is configured with reasoning:false and would show nothing.
 			if (evt.message?.thinking) {
-				sendChunk({ reasoning_content: evt.message.thinking }, null);
+				sendChunk(state, { reasoning_content: evt.message.thinking }, null);
 			}
 			if (evt.message?.tool_calls?.length) {
-				sawToolCall = true;
+				state.sawToolCall = true;
 				const toolCalls = evt.message.tool_calls.map((tc) => ({
 					id: tc.id || `call_${++toolCallSeq}`,
 					type: "function",
 					// The client keys streaming tool-call blocks by `index`.
 					// Without it, each chunk is treated as a separate call and the
 					// arguments never assemble.
-					index: streamToolIndex++,
+					index: state.streamToolIndex++,
 					function: {
 						name: tc.function?.name || "",
 						arguments:
@@ -346,46 +395,65 @@ const server = createServer(async (req, res) => {
 								: JSON.stringify(tc.function?.arguments || {}),
 					},
 				}));
-				sendChunk({ tool_calls: toolCalls }, null);
+				sendChunk(state, { tool_calls: toolCalls }, null);
 			}
 			if (evt.done) {
-				usage = {
+				state.usage = {
 					prompt_tokens: evt.prompt_eval_count || 0,
 					completion_tokens: evt.eval_count || 0,
 				};
-				doneReason = evt.done_reason ?? null;
+				state.doneReason = evt.done_reason ?? null;
 			}
 			return false;
 		};
 
-		while (true) {
-			const { done, value } = await reader.read();
-			if (done) break;
-			buffer += decoder.decode(value, { stream: true });
-			const lines = buffer.split("\n");
-			buffer = lines.pop() ?? "";
-			for (const line of lines) {
-				const trimmed = line.trim();
-				if (!trimmed) continue;
-				let evt;
-				try {
-					evt = JSON.parse(trimmed);
-				} catch {
-					continue;
+		const collect = async (response, state) => {
+			const decoder = new TextDecoder();
+			let buffer = "";
+			const reader = response.body.getReader();
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+				buffer += decoder.decode(value, { stream: true });
+				const lines = buffer.split("\n");
+				buffer = lines.pop() ?? "";
+				for (const line of lines) {
+					const trimmed = line.trim();
+					if (!trimmed) continue;
+					let evt;
+					try {
+						evt = JSON.parse(trimmed);
+					} catch {
+						continue;
+					}
+					if (handleEvent(evt, state)) return;
 				}
-				if (handleEvent(evt)) return;
 			}
+			// A final NDJSON line without a trailing newline is still an event.
+			const tail = buffer.trim();
+			if (tail) {
+				try {
+					handleEvent(JSON.parse(tail), state);
+				} catch {
+					// A partial trailing fragment is not a usable event.
+				}
+			}
+		};
+
+		let state = newState();
+		await collect(upstream, state);
+		for (let i = 0; i < EMPTY_RETRIES && !state.sawToolCall && !state.sawContent && !state.errored; i++) {
+			const retried = await postChat(withNudge(native), upstreamAbort.signal);
+			state = newState();
+			await collect(retried, state);
 		}
 
-		// A final NDJSON line without a trailing newline is still an event.
-		const tail = buffer.trim();
-		if (tail) {
-			try {
-				if (handleEvent(JSON.parse(tail))) return;
-			} catch {
-				// A partial trailing fragment is not a usable event.
-			}
+		if (state.errored) {
+			res.write(`data: ${JSON.stringify({ error: state.errored })}\n\n`);
+			res.end();
+			return;
 		}
+		for (const chunk of state.outbox) res.write(chunk);
 
 		// Final chunk carries the finish_reason and the usage, which the client
 		// requires. Tool calls must report "tool_calls" (with "stop" the client
@@ -400,14 +468,18 @@ const server = createServer(async (req, res) => {
 				{
 					index: 0,
 					delta: {},
-					finish_reason: sawToolCall ? "tool_calls" : doneReason === "length" ? "length" : "stop",
+					finish_reason: state.sawToolCall
+						? "tool_calls"
+						: state.doneReason === "length"
+							? "length"
+							: "stop",
 				},
 			],
-			usage: usage
+			usage: state.usage
 				? {
-						prompt_tokens: usage.prompt_tokens,
-						completion_tokens: usage.completion_tokens,
-						total_tokens: usage.prompt_tokens + usage.completion_tokens,
+						prompt_tokens: state.usage.prompt_tokens,
+						completion_tokens: state.usage.completion_tokens,
+						total_tokens: state.usage.prompt_tokens + state.usage.completion_tokens,
 					}
 				: undefined,
 		};
