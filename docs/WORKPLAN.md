@@ -236,5 +236,5 @@ CW session (bounded by `--max-cw-retries`, default 3). Offline gate: `tests/meas
 - 2026-11-18 13:46 — fresh-clone verification found the tools gate falling back to a bare `python3`
   name that vanished under its own `env -i` check. Resolved the fallback to an absolute path and
   republished; the measurement gate still needs the bootstrapped venv for numpy/scipy. A second
-  fresh-clone pass skipped the PyYAML-dependent absent-cli check when no venv is present, so the gate
-  no longer crashes before its summary.
+  fresh-clone pass skipped both PyYAML-dependent checks when no venv is present, so the gate no longer
+  crashes before its summary.

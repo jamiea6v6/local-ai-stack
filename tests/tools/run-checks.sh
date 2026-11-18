@@ -40,12 +40,12 @@ if "$PY" -c 'import yaml' >/dev/null 2>&1; then
   out=$(env -i HOME="$WORK/home" PATH=/nonexistent ARDUINO_CLI= \
         "$PY" "$REPO/tools/board_sheet.py" --board wemos-d1)
   check "no arduino-cli -> FQBN UNKNOWN"  'grep -qx "FQBN: UNKNOWN" <<<"$out"'
+  "$PY" "$REPO/tools/board_sheet.py" --board wemos-d1 --out "$WORK/sheet.txt" >/dev/null
+  check "--out writes the sheet"        'grep -qx "BOARD: LOLIN(WeMos) D1 R1" "$WORK/sheet.txt"'
 else
   printf 'SKIP no arduino-cli -> FQBN UNKNOWN (PyYAML unavailable)\n'
+  printf 'SKIP --out writes the sheet (PyYAML unavailable)\n'
 fi
-
-"$PY" "$REPO/tools/board_sheet.py" --board wemos-d1 --out "$WORK/sheet.txt" >/dev/null
-check "--out writes the sheet"          'grep -qx "BOARD: LOLIN(WeMos) D1 R1" "$WORK/sheet.txt"'
 
 if "$PY" "$REPO/tools/board_sheet.py" --board no-such-board >/dev/null 2>&1; then
   bad "unknown board exits non-zero"
