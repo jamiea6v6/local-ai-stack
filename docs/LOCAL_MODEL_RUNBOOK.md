@@ -35,7 +35,7 @@ grep -n 'gpt-oss' ~/.config/opencode/opencode.jsonc | head -5
 On Brain1 (subject), from Skynet:
 
 ```bash
-export BRAIN1=jamie@<brain1-host>
+export BRAIN1=<user>@<brain1-host>
 ssh "$BRAIN1" 'cd ~/projects/local-ai-stack && git rev-parse HEAD && grep -n id ~/.pi/agent/models.json'
 ```
 
@@ -135,17 +135,19 @@ From the report JSON, paste only:
 ## Paste this into Skynet Opencode / GPT-OSS
 
 ```text
-Read docs/LOCAL_MODEL_RUNBOOK.md. You are the operator on Skynet; Brain1 Pi is the subject. Run Tier 0,
-then Tier 1 only, on Brain1. Do not pass --model ollama/gpt-oss:20b to the Pi runner; omit --model so
-Brain1's configured model is rated. Do not edit prompts, ground truth, PASS/FAIL criteria, or
-tests/suite.json. Do not run the full baseline. Write outputs under ~/local-results/ on Brain1 and
-report only the fields in the "Report back" section.
+Read ~/local-ai-stack/docs/LOCAL_MODEL_RUNBOOK.md. You are the operator on Skynet; Brain1 Pi
+is the subject. Run Tier 0, then Tier 1 only, on Brain1. Do not pass --model ollama/gpt-oss:20b to the
+Pi runner; omit --model so Brain1's configured model is rated. Do not edit prompts, ground truth,
+PASS/FAIL criteria, or tests/suite.json. Do not run the full baseline. Write outputs under
+~/local-results/ on Brain1 and report only the fields in the "Report back" section.
 ```
 
 ## I7 on the same operator/subject split
 
 I7 can use this pattern, but it needs its own fresh work dirs and external gates. Do not fold it into
-the I6 report. Skynet Opencode still operates; Brain1 Pi is still the subject.
+the I6 report. Skynet Opencode still operates; Brain1 Pi is still the subject. `docs/I7_TASKS.md` is
+authoritative for I7, including its operator mechanics guardrails and helper commands. The summaries
+below are overview only; do not substitute their shorter prompts or commands for the frozen I7 task.
 
 ### I7a — MCU firmware task
 

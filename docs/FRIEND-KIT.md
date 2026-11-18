@@ -335,3 +335,26 @@ brain1's Pi harness:
 - `~/.pi/agent/extensions/enforce-search.ts` — forces lookups before answers
 - `~/.pi/agent/AGENTS.md` — the harness rules (keep it short!)
 - `~/.pi/agent/gate-log.md` — what the gates decided and why
+
+---
+
+## 11. Repos and the honest scorecard
+
+The three public repos are:
+
+```sh
+git clone https://github.com/jamiea6v6/local-ai-stack.git
+git clone https://github.com/jamiea6v6/brain1-stack.git
+git clone https://github.com/jamiea6v6/mcu-domain.git
+```
+
+`DECK.md` is the short version. The numbers in it come from the recorded I6/I7 runs, not from
+impressions:
+
+- I6 measurement: suite A–F 6/18; CW 0/5 at 11/11; best CW 9/11; instrument gate 11/11. This is a
+  **blocked** result — the measurement works, the model/harness baseline does not clear the bar.
+- I7: both end-to-end tasks passed on attempt 1 — MCU firmware with `COMPILE_PASS` and `PINS_PASS`,
+  and a Linux CLI with the exact required stdout.
+
+That contrast is the point of the whole setup: a small local model can produce correct artifacts, but
+only when a deterministic process decides what "correct" means.

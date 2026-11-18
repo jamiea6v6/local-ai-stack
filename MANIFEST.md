@@ -196,10 +196,11 @@ Seven files changed. The hashes in §4 describe the 2026-11-14 capture; these ar
 
 | File | sha256 (first 16) | Change |
 |---|---|---|
-| `tests/i7/pi_turn.py` | `ff9729f861ff62d6` | NEW: PTY Pi turn with the runner's exact `--session-id`/`--session` flag split; prompt supplied by file |
-| `tests/i7/session_evidence.py` | `2a807f4a34a18b10` | NEW: reads Pi toolResult records and asserts `COMPILE: PASS` + `PINS: PASS` for I7a |
-| `docs/I7_TASKS.md` | `e44d1a8f7e1c2a55` | adds executable operator interface and exact prep commands; prompts/gates/retry cap/report fields unchanged |
-| `docs/WORKPLAN.md` | `5a3c302c061d473a` | logs the aborted operator session and helper fix |
+| `tests/i7/pi_turn.py` | `ff9729f861ff62d6` | NEW: mode 100755 PTY Pi turn with the runner's exact `--session-id`/`--session` flag split; prompt supplied by file |
+| `tests/i7/session_evidence.py` | `2a807f4a34a18b10` | NEW: mode 100755; reads Pi toolResult records and asserts `COMPILE: PASS` + `PINS: PASS` for I7a |
+| `docs/I7_TASKS.md` | `75f7409f5ec56dd6` | adds executable operator interface and mechanics guardrails; prompts/gates/retry cap/report fields unchanged |
+| `docs/LOCAL_MODEL_RUNBOOK.md` | `553ab77a85f94e68` | points I7 execution to the authoritative task file and guardrails |
+| `docs/WORKPLAN.md` | `38c795cb371fcf42` | logs operator sessions through I8 publication |
 
 ---
 

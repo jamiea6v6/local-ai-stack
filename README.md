@@ -16,6 +16,7 @@ stack is built on: *the model must never be the judge of its own output.*
 
 ```
 MANIFEST.md            every version pin + why it is pinned   ← read this first
+DECK.md                one-page scorecard from the I6/I7 runs
 harness/extensions/    the Pi extensions (the actual IP)
 harness/models.json    provider, model, context window, sampling
 harness/pi-AGENTS.md   the harness rules (short on purpose — every line costs per turn)
@@ -157,3 +158,11 @@ A static review of the capture found real defects; these are patched here, not j
 The stack was captured 2026-11-14 from a working Debian 13 install; the 14 captured files were
 sha256-verified byte-identical to their live counterparts (table in `MANIFEST.md` §4). The grader was
 merged in from a separate repo and is kept as a worked example, not as a dependency of the stack.
+
+## Public repos
+
+- `https://github.com/jamiea6v6/local-ai-stack.git`
+- `https://github.com/jamiea6v6/brain1-stack.git`
+- `https://github.com/jamiea6v6/mcu-domain.git`
+
+`DECK.md` summarizes the measured result; `docs/FRIEND-KIT.md` is the build guide.
