@@ -36,7 +36,8 @@ out=$(sheet --board arduino-uno)
 check "uno FQBN survives UNO/UNO Mini"  'grep -qx "FQBN: arduino:avr:uno" <<<"$out"'
 check "uno logic level is 5 V"          'grep -qx "LOGIC LEVEL: 5.0 V" <<<"$out"'
 
-if "$PY" -c 'import yaml' >/dev/null 2>&1; then
+if env -i HOME="$WORK/home" PATH=/nonexistent ARDUINO_CLI= \
+   "$PY" -c 'import yaml' >/dev/null 2>&1; then
   out=$(env -i HOME="$WORK/home" PATH=/nonexistent ARDUINO_CLI= \
         "$PY" "$REPO/tools/board_sheet.py" --board wemos-d1)
   check "no arduino-cli -> FQBN UNKNOWN"  'grep -qx "FQBN: UNKNOWN" <<<"$out"'
