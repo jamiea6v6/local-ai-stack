@@ -356,6 +356,29 @@ fi
 LDCONF=$(command -v ldconfig || echo /sbin/ldconfig)
 "$LDCONF" -p 2>/dev/null | grep libportaudio >/dev/null && p "libportaudio2" || f "libportaudio2 missing"
 
+# 15 workflow files installed from this repo (install-harness.sh)
+check_installed() {
+  local kind=$1 pattern=$2 src dst name n=0 bad=0
+  for src in "$SCRIPT_DIR/harness/$kind"/$pattern; do
+    [ -f "$src" ] || continue
+    n=$((n+1))
+    name=$(basename "$src")
+    dst="$HOME/.pi/agent/$kind/$name"
+    if [ -L "$dst" ]; then
+      s "harness $kind/$name is a symlink (managed elsewhere)"; bad=1
+    elif [ ! -f "$dst" ]; then
+      f "harness $kind/$name not installed (run ./install-harness.sh)"; bad=1
+    elif ! cmp -s "$src" "$dst"; then
+      f "harness $kind/$name differs from the repo copy (edit the repo, then run ./install-harness.sh)"; bad=1
+    fi
+  done
+  if [ "$n" -gt 0 ] && [ "$bad" = 0 ]; then p "harness $kind: $n file(s) match the repo"; fi
+  return 0
+}
+check_installed prompts '*.md'
+check_installed domains '*.md'
+check_installed bin '*'
+
 # summary
 printf '\n%d passed, %d failed, %d skipped\n' "$PASS" "$FAIL" "$SKIP"
 [ "$FAIL" -eq 0 ] || exit 1

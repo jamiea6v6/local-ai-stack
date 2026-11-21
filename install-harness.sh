@@ -6,7 +6,7 @@
 #
 #   ./install-harness.sh                 # install everything
 #   ./install-harness.sh --dry-run       # print the plan, change nothing
-#   ./install-harness.sh --force         # overwrite existing (no backup)
+#   ./install-harness.sh --force         # replace symlinks too (existing files are still backed up)
 #
 # Exit codes: 0 = done (warnings allowed), 1 = a required step failed.
 
@@ -18,7 +18,7 @@ DRY=0
 FORCE=0
 
 usage() {
-  sed -n '2,15p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
   exit 0
 }
 
@@ -36,92 +36,58 @@ head_() { printf '\n== %s\n' "$*"; }
 ok()   { printf '  present: %s\n' "$*"; }
 act()  { printf '  %s: %s\n' "$([ "$DRY" = 1 ] && echo 'would' || echo 'doing')" "$*"; }
 warn() { printf '  WARN: %s\n' "$*"; }
-die()  { printf '  FAIL: %s\n' "$*" >&2; exit 1; }
 run()  { if [ "$DRY" = 1 ]; then return 0; fi; "$@"; }
 
-# ---------------------------------------------------------------- prompts
-head_ "Pi prompts harness"
-mkdir -p "$PI_HOME/prompts"
-
-install_prompt() {
-  local src=$1 dst=$2 label=${3:-$(basename "$1")}
+# install_file SRC DST MODE
+#   - a symlink at DST is managed elsewhere: left alone unless --force
+#   - an identical file is reported as present
+#   - a different file is backed up (timestamped) before being replaced
+install_file() {
+  local src=$1 dst=$2 mode=$3 label
+  label=$(basename "$src")
   if [ -L "$dst" ] && [ "$FORCE" = 0 ]; then
     warn "$label is a symlink to $(readlink "$dst"); managed elsewhere, not touching"
     return
   fi
-  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then ok "$label"; return; fi
-  if [ "$FORCE" = 1 ] && [ -L "$dst" ]; then run rm -f "$dst"; fi
-  if [ -f "$dst" ]; then
+  if [ ! -L "$dst" ] && [ -f "$dst" ] && cmp -s "$src" "$dst"; then ok "$label"; return; fi
+  if [ -L "$dst" ]; then
+    act "replace symlink $label"
+    run rm -f "$dst"
+  elif [ -f "$dst" ]; then
     local bak="$dst.bak.$(date +%Y%m%d%H%M%S)"
     act "back up $label -> $(basename "$bak")"
     run cp -p "$dst" "$bak"
   fi
   act "install $label"
-  run install -m 0644 "$src" "$dst"
+  run install -m "$mode" "$src" "$dst"
 }
 
-for f in "$SCRIPT_DIR"/harness/prompts/*.md; do
-  [ -f "$f" ] || { warn "no prompt files found"; continue; }
-  install_prompt "$f" "$PI_HOME/prompts/$(basename "$f")"
-done
-
-# ---------------------------------------------------------------- domains
-head_ "Pi domains harness"
-mkdir -p "$PI_HOME/domains"
-
-install_domain() {
-  local src=$1 dst=$2 label=${3:-$(basename "$1")}
-  if [ -L "$dst" ] && [ "$FORCE" = 0 ]; then
-    warn "$label is a symlink to $(readlink "$dst"); managed elsewhere, not touching"
-    return
+# install_dir KIND SRC_GLOB_DIR DST_DIR MODE PATTERN
+install_dir() {
+  local kind=$1 srcdir=$2 dstdir=$3 mode=$4 pattern=$5 f found=0
+  head_ "Pi $kind"
+  if [ "$DRY" = 1 ]; then
+    [ -d "$dstdir" ] || act "create $dstdir"
+  else
+    mkdir -p "$dstdir"
   fi
-  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then ok "$label"; return; fi
-  if [ "$FORCE" = 1 ] && [ -L "$dst" ]; then run rm -f "$dst"; fi
-  if [ -f "$dst" ]; then
-    local bak="$dst.bak.$(date +%Y%m%d%H%M%S)"
-    act "back up $label -> $(basename "$bak")"
-    run cp -p "$dst" "$bak"
-  fi
-  act "install $label"
-  run install -m 0644 "$src" "$dst"
+  for f in "$srcdir"/$pattern; do
+    [ -f "$f" ] || continue
+    found=1
+    install_file "$f" "$dstdir/$(basename "$f")" "$mode"
+  done
+  [ "$found" = 1 ] || warn "no $kind files found in $srcdir"
 }
 
-for f in "$SCRIPT_DIR"/harness/domains/*.md; do
-  [ -f "$f" ] || { warn "no domain files found"; continue; }
-  install_domain "$f" "$PI_HOME/domains/$(basename "$f")"
-done
+install_dir "prompts" "$SCRIPT_DIR/harness/prompts" "$PI_HOME/prompts" 0644 '*.md'
+install_dir "domains" "$SCRIPT_DIR/harness/domains" "$PI_HOME/domains" 0644 '*.md'
+install_dir "bin scripts" "$SCRIPT_DIR/harness/bin" "$PI_HOME/bin" 0755 '*'
 
-# ---------------------------------------------------------------- bin scripts
-head_ "Pi bin harness"
-mkdir -p "$PI_HOME/bin"
-
-install_bin() {
-  local src=$1 dst=$2 label=${3:-$(basename "$1")}
-  if [ -L "$dst" ] && [ "$FORCE" = 0 ]; then
-    warn "$label is a symlink to $(readlink "$dst"); managed elsewhere, not touching"
-    return
-  fi
-  if [ -f "$dst" ] && cmp -s "$src" "$dst"; then ok "$label"; return; fi
-  if [ "$FORCE" = 1 ] && [ -L "$dst" ]; then run rm -f "$dst"; fi
-  if [ -f "$dst" ]; then
-    local bak="$dst.bak.$(date +%Y%m%d%H%M%S)"
-    act "back up $label -> $(basename "$bak")"
-    run cp -p "$dst" "$bak"
-  fi
-  act "install $label"
-  run install -m 0755 "$src" "$dst"
-}
-
-for f in "$SCRIPT_DIR"/harness/bin/*; do
-  [ -f "$f" ] || { warn "no bin files found"; continue; }
-  install_bin "$f" "$PI_HOME/bin/$(basename "$f")"
-done
-
-# ---------------------------------------------------------------- summary
 head_ "summary"
-say "prompts installed to $PI_HOME/prompts/"
-say "domains installed to $PI_HOME/domains/"
-say "bin scripts installed to $PI_HOME/bin/"
+say "prompts: $PI_HOME/prompts/"
+say "domains: $PI_HOME/domains/"
+say "bin:     $PI_HOME/bin/"
+if [ "$DRY" = 1 ]; then say "dry run: nothing was changed"; fi
 say "verify with: $SCRIPT_DIR/verify-stack.sh"
 
 exit 0
