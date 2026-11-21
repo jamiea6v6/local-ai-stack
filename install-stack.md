@@ -1,274 +1,132 @@
-# Install Stack — Debian 13 (trixie) xfce + P106-100 GPU
+# Install stack — Debian 13 on a P106-100 box
 
-Fresh install sequence for Skynet / Brain1 local-ai-stack configuration.
-Based on MANIFEST.md §2–§4 (pins captured 2026-11-14). Idempotent where possible.
+This file covers only what the scripts cannot do (OS, driver, reboot), then hands over to them.
+Everything else is in `bootstrap.sh`, `install-harness.sh` and `verify-stack.sh`; do not repeat their
+steps by hand.
+
+> **Status.** `bootstrap.sh`, `install-harness.sh` and `verify-stack.sh` have been run on real boxes
+> (see the log in `docs/WORKPLAN.md`). The driver steps in §2 follow general Debian practice and have
+> **not** yet been run end to end on a fresh VM. On the first fresh run, confirm each command and fix
+> this file with what actually happened.
+
+Running in a Proxmox VM with GPU passthrough? Do `vmsetup.md` first, then come back to §1.
 
 ---
 
-## 0. Prerequisites
+## 1. Base system
 
-- Hardware: NVIDIA P106-100 (GP106, compute_cap 6.1, 6144 MiB VRAM, no display outputs)
-- OS: Debian 13 (trixie) with xfce desktop
-- User: `jamie` (no passwordless sudo; use `su` or `sudo` for root steps)
-
----
-
-## 1. System Package Update + Essentials
+Debian 13 (trixie). A desktop (xfce) is optional; the stack does not need one.
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-
-sudo apt install -y \
-  curl wget git vim tmux htop bash-completion \
-  advanced-aoe-tools xfsproj e2fsprogs \
-  util-linux apt-transport-https ca-certificates gnupg \
-  lsb-release software-properties-common
-
-# Verify Debian 13
-cat /etc/os-release  # must show VERSION_ID=13
+sudo apt install -y git curl ca-certificates python3-venv pciutils vulkan-tools
+. /etc/os-release && echo "$PRETTY_NAME"      # must say Debian GNU/Linux 13
 ```
 
----
+`pciutils` provides `lspci` and `vulkan-tools` provides `vulkaninfo`; `verify-stack.sh` uses both.
 
-## 2. NVIDIA P106-100 Vulkan Driver (PINNED)
+## 2. NVIDIA driver (Vulkan path)
 
-**Critical: Install driver `550.163.01` — do not "upgrade" to 570+ unless you need CUDA.**
+The pin is **550.163.01** and it is deliberate: the 570+ requirement in Ollama's docs applies to CUDA,
+and this stack runs the Vulkan path. Read `MANIFEST.md` §2 before changing it.
 
-The P106-100 at compute_cap 6.1 is fully supported by **550.163.01** for the Vulkan path.
-The 570+ requirement applies to CUDA only; your stack runs Vulkan path via the Ollama shim.
+Debian ships the driver in the `non-free` component. Make sure `contrib non-free non-free-firmware`
+are in the `Components:` line of `/etc/apt/sources.list.d/debian.sources`, then:
 
 ```bash
-# Method A: nvidia-driver package (pulls latest 550.xx from Debian repos)
-sudo apt install -y nvidia-driver-550
-
-# Method B: Specific 550.163.01 (if you need exact pin)
-#   Download runfile from NVIDIA site or use apt pinning
-#   See MANIFEST.md §2 for the exact driver pin rationale
-
-# Reboot to load the driver
+sudo apt update
+apt-cache policy nvidia-driver                # check the candidate version against MANIFEST §2
+sudo apt install -y linux-headers-amd64 nvidia-driver
 sudo reboot
 ```
 
-**Verify after reboot:**
+If the candidate version is not 550.163.01, stop and decide deliberately; do not install blindly.
+Secure Boot must be off (or the kernel module signed), or the module will not load.
+
+After the reboot:
 
 ```bash
-lspci -d 10de:1c07   # should show NVIDIA P106-100
-nvidia-smi           # should show driver 550.163.01, 6144 MiB VRAM
-vulkaninfo           # should detect Vulkan device(s)
+lspci -d 10de:1c07          # the P106-100 (one line per card)
+nvidia-smi                  # driver version, 6144 MiB per card
+vulkaninfo --summary        # lists the card as a Vulkan device
+ls /usr/share/vulkan/icd.d/nvidia_icd.json
 ```
 
-**Why not 570+?** 
-MANIFEST.md §2: "The 570 requirement applies to the **CUDA** path only. brain1 runs the **Vulkan** path, which has no such requirement. What actually decides whether a model runs is **VRAM**, not the driver."
+If `vulkaninfo` lists no NVIDIA device, the Vulkan ICD is missing; see Troubleshooting.
 
----
-
-## 3. Ollama Installation
+## 3. Clone and bootstrap
 
 ```bash
-# Install Ollama (official method)
-curl -fsSL https://ollama.com/install.sh | sh
-
-# Start the daemon
-ollama serve &
-
-# OR systemd:
-systemctl start ollama.service
-systemctl enable ollama.service
-
-# Verify it's running
-ollama list          # should show any pulled models
-curl -fsS http://127.0.0.1:11434/api/version  # API responding
-```
-
-**Ports (MANIFEST.md §4):**
-
-| Port | What |
-|---|---|
-| 11434 | Ollama native API — the shim only |
-| 11435 | the shim's OpenAI-compatible API — Pi (`models.json` baseUrl) |
-
----
-
-## 4. Python + Audio Dependencies
-
-Your stack needs PortAudio for `sounddevice` in the Python venv.
-
-```bash
-# System-level PortAudio (required before venv audio imports)
-sudo apt install -y libportaudio2 python3-pyaudio
-
-# If bootstrap.sh --system is used, it also checks for this:
-#   lint: "$LDCONF -p 2>/dev/null | grep libportaudio >/dev/null"
-#   p "libportaudio2" || f "libportaudio2 missing"
-```
-
----
-
-## 5. Clone + Bootstrap the Stack
-
-```bash
-# Clone the repo (source of truth)
 git clone https://github.com/jamiea6v6/local-ai-stack.git ~/local-ai-stack
 cd ~/local-ai-stack
-
-# Bootstrap the full environment:
-#   - Node 22 under ~/.local/node
-#   - Pi coding agent @earendil-works/pi-coding-agent@1.4.0
-#   - Ollama shim + systemd unit
-#   - Models from models.json (gemma4:e4b-it-qat, llama3.2:3b)
-#   - Venv with numpy/scipy/sounddevice/textual
-#   - Arduino CLI + cores + libraries
-#   - GPU/P106-100 detection + validation
-#   - libportaudio2 check
-./bootstrap.sh
-
-# With --system flag if you want root steps included:
-#   ./bootstrap.sh --system
+./bootstrap.sh --dry-run                           # read the plan first
+./bootstrap.sh --system --install-ollama --pull-models
 ```
 
----
+- `--system` runs root steps (it will ask for your sudo password).
+- `--install-ollama` downloads Ollama's install script and pipes it to `sh`. If you would rather read
+  it first or install Ollama yourself, leave the flag out.
+- `--pull-models` downloads the models named in `harness/models.json` (several GB).
+- Every step is idempotent; a second run should report no actions.
 
-## 6. Install Harness Prompts/Domains/Bin
+## 4. Keep the shim running on a headless box
+
+The shim is a user systemd unit. A user unit only runs while that user has a session, unless
+lingering is enabled. `bootstrap.sh` does not set this.
 
 ```bash
-# Install the harness prompt/domain/bin infrastructure from local source
-# to ~/.pi/agent/ (7 prompts, 1 domain, 5 bin scripts)
+sudo loginctl enable-linger "$USER"
+systemctl --user status ollama-v1-shim
+```
+
+## 5. Install the workflow files
+
+```bash
+./install-harness.sh --dry-run
 ./install-harness.sh
 ```
 
-**What this installs:**
+This copies `harness/prompts/`, `harness/domains/` and `harness/bin/` into `~/.pi/agent/`. An
+existing file that differs is backed up with a timestamp; a symlink is left alone unless `--force`.
 
-| Category | Files |
-|---|---|
-| Prompts | research.md, plan.md, do.md, document.md, handoff.md, deploy.md, debug.md (7 files) |
-| Domains | tui-dsp.md (1 file) |
-| Bin scripts | preflight.sh, deploy.sh, document.sh, handoff.sh, debug.sh (5 scripts) |
-
-**Idempotent:** Second run reports all files "present"; backup with timestamp on overwrite.
-`--dry-run` mode available to preview without changes.
-`--force` mode to overwrite without backing up.
-
----
-
-## 7. Pull Models + Start Services
+## 6. Verify
 
 ```bash
-# Start Ollama if not already running
-ollama serve
-
-# Pull the daily driver model
-ollama pull gemma4:e4b-it-qat   # 6.1 GB, ~30 tok/s, QAT build
-
-# Pull fallback model
-ollama pull llama3.2:3b         # 3B params, fast, unreliable tool use
-
-# Verify models are loaded
-ollama list
+./verify-stack.sh --profile p106
 ```
 
----
+Expect exit 0 with no FAIL lines. SKIPs are allowed; the usual ones are `pi` not on a non-login PATH,
+no `mcu-domain` checkout, and `vulkaninfo` not installed. A FAIL is information: read the line and fix
+that item. Do not record a fixed pass count; it changes as checks are added. For one example of a
+real run, see the 2026-11-16 brain1 entry in `docs/WORKPLAN.md`.
 
-## 8. Final Verification
+`verify-stack.sh` also checks that the installed prompts, domains and bin scripts match the repo.
 
-```bash
-# Run the complete stack verification
-./verify-stack.sh
-```
+## 7. Daily use
 
-**Expected output** (per MANIFEST.md capture):
+Start `pi` inside a project directory. Files land in that directory.
 
-```
-31 passed, 3 failed, 1 skipped
-```
-
-**3 pre-existing FAILs** (unrelated to fresh install):
-
-| File | Issue | Source |
+| Command | What it does | File written |
 |---|---|---|
-| `models.json` | Brain1-specific `gpt-oss:20b` model added | locals-only, not on GitHub |
-| `settings.json` | `lastChangelogVersion: "1.4.0"` vs repo `"1.1.0"` | Brain1 config drift |
-| `AGENTS.md` | `@STACK_DIR@` template not resolved (uses `/data/jamie/local-ai-stack/...`) | template for host-agnostic copy |
+| `/research <domain> <topic>` | one-question-at-a-time discovery, no code | `BRIEF.md` |
+| `/plan <domain> "<task>"` | gathers evidence with the domain's PREFLIGHT, plans, stops | `PLAN.md` |
+| (you) | edit the line `APPROVED: none` to e.g. `APPROVED: steps 1-3` | `PLAN.md` |
+| `/do <n>` | runs approved step *n* and its gate | a `DONE n:` line in `PLAN.md` |
+| `/handoff` | writes a summary from `PLAN.md` for the next session | `HANDOFF.md` |
+| `/debug [run <command>]` | environment snapshot, optionally a timed command run | `DEBUG.md` |
+| `/deploy` | detects project files and how to run them | `DEPLOY.md` |
+| `/document` | exports the current session transcript | `session-content.md` |
 
-**1 SKIP** (expected):
+Available domains are the files in `~/.pi/agent/domains/` (currently `tui-dsp`).
 
-| Item | Reason |
-|---|---|
-| extensions/ is a symlink | managed elsewhere (`/data/jamie/ai-stack/pi-agent/extensions`) |
+## 8. Troubleshooting
 
-**31 PASS** confirms: Debian 13, Node 22, Ollama 0.40.12, shim active, models loaded, PI 1.4.0, GPU present, VRAM correct, Vulkan available, libportaudio2 installed, Arduino CLI + cores + libraries, grader 11/11, MCU selftest green.
-
----
-
-## 9. Post-Install / Daily Use
-
-```bash
-# Daily work flow
-/research <domain> <topic>    # write BRIEF.md, get READY /plan command
-/plan <domain> "<task>"       # gather evidence (PREFLIGHT), write PLAN.md
-HANDOFF                     # generate HANDOFF.md from PLAN.md
-DEBUG                       # capture runtime snapshot (.debug.md)
-DEPLOY                      # generate DEPLOY.md from project files
-DOCUMENT                    # export session content (.session-content.md)
-```
-
-**Constraints from AGENTS.md:**
-
-- No commits/pushes/installs of third-party code without explicit request
-- Never expose/commit `/data/jamie/.config/opencode/secrets.env`
-- Public commits: no LAN IPs, `/home//data/jamie` paths, real names, raw transcripts
-- Git over HTTPS push hangs (timeout 45 → RC 124). Prefer GitHub API/MCP tools for publish.
-- Access: Brain1 only `ssh -o BatchMode=yes -o ConnectTimeout=5 jamie@192.168.1.86 '...'`; no SSH to Skynet
-- Pi template/tool rules: prompts in `~/.pi/agent/prompts/`, domains in `~/.pi/agent/domains/`
-
----
-
-## 10. Troubleshooting
-
-| Symptom | Likely Cause | Fix |
+| Symptom | Likely cause | Fix |
 |---|---|---|
-| `ollama serve` hangs / no model loaded | Driver not loaded after reboot | Reboot after `nvidia-driver-550` install; verify `nvidia-smi` |
-| `import sounddevice` → `PortAudio library not found` | `libportaudio2` not installed | `sudo apt install -y libportaudio2 python3-pyaudio` |
-| `verify-stack.sh` FAIL on models.json drift | Brain1-specific gpt-oss:20b in models.json | Ignore; locals-only, not published to GitHub |
-| `verify-stack.sh` FAIL on settings.json version | `1.4.0` vs `"1.1.0"` in repo | Brain1 config; ignore or update via bootstrap `--force-config` |
-| GPU seen but VRAM wrong | Wrong NVIDIA driver installed | Reinstall `nvidia-driver-550`; verify `550.163.01` |
-| `ollama` not found after install | PATH not refreshed | `source ~/.bashrc` or `ollama serve` in new shell |
-
----
-
-## File Inventory (this repo: `~/local-ai-stack/`)
-
-| File | Purpose |
-|---|---|
-| `bootstrap.sh` | Full environment install (Node, Pi, Ollama shim, models, venv, GPU, Arduino) |
-| `install-harness.sh` | Harness prompts/domains/bin to `~/.pi/agent/` (new filler) |
-| `verify-stack.sh` | Stack validation (30+ checks, PASS/FAIL/SKIP) |
-| `install-stack.md` | **This file** — fresh install sequence for Debian 13 xfce + P106-100 |
-| `MANIFEST.md` | Pins + why each version is pinned (captured 2026-11-14) |
-| `DECK.md` | Presentation/explainable deck (house format) |
-| `systemd/ollama-v1-shim.service` | Ollama shim systemd unit |
-
----
-
-## Quick Command Sequence (one-liner)
-
-```bash
-# Fresh Debian 13 xfce + P106-100:
-sudo apt update && sudo apt upgrade -y && \
-  curl -fsSL https://ollama.com/install.sh | sh && \
-  sudo apt install -y libportaudio2 python3-pyaudio && \
-  sudo reboot && \
-  git clone https://github.com/jamiea6v6/local-ai-stack.git ~/local-ai-stack && \
-  cd ~/local-ai-stack && \
-  ./bootstrap.sh && \
-  ./install-harness.sh && \
-  ollama serve && \
-  ollama pull gemma4:e4b-it-qat && \
-  ollama pull llama3.2:3b && \
-  ./verify-stack.sh
-```
-
-**Note:** The `sudo reboot` is required after driver install. After reboot, resume the sequence from `git clone`.
-
----
-
-*Generated from MANIFEST.md §2–§4 (pins captured 2026-11-14) + bootstrap.sh + install-harness.sh workflow.*
+| `nvidia-smi` fails after the driver install | not rebooted, Secure Boot on, or kernel headers missing | reboot; disable Secure Boot; `sudo apt install linux-headers-amd64`, then `sudo dpkg-reconfigure nvidia-kernel-dkms` |
+| `vulkaninfo` shows no NVIDIA device | Vulkan ICD package missing | `apt-cache search nvidia vulkan`; install the ICD package, then check `ls /usr/share/vulkan/icd.d/` |
+| `verify-stack.sh`: `libportaudio2 missing` | root step not run | `./bootstrap.sh --system` |
+| `verify-stack.sh`: prompts or domains differ from the repo | edited the installed copy, or never installed | edit the repo copy, then `./install-harness.sh` |
+| shim not running after logout or reboot | lingering not enabled | `sudo loginctl enable-linger "$USER"` |
+| first completion takes about a minute | cold model load | wait; later requests are faster |
+| card not visible inside a Proxmox VM | passthrough problem | see `vmsetup.md` |

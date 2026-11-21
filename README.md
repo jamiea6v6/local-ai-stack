@@ -21,6 +21,11 @@ harness/extensions/    the Pi extensions (the actual IP)
 harness/models.json    provider, model, context window, sampling
 harness/pi-AGENTS.md   the harness rules (short on purpose — every line costs per turn)
 harness/settings.json  pi's own settings
+harness/prompts/       Pi slash commands: /research /plan /do /handoff /debug /deploy /document
+harness/domains/       per-domain evidence and gate rules the prompts read
+harness/bin/           deterministic scripts the prompts call
+install-stack.md       fresh Debian 13 install sequence (OS, driver, then the scripts)
+vmsetup.md             Proxmox VM with P106 passthrough
 systemd/               the shim's user unit
 tools/                 Ollama /v1 shim, raise-context.sh, board_meta.py, board_sheet.py (fact sheets)
 tests/                 local-agent suite (snapshot + refreshed) + measurement runner + extension/tool/shim gates
@@ -34,6 +39,7 @@ docs/FRIEND-KIT.md     build guide for a 2× P106-100 box
 git clone <this repo> ~/projects/local-ai-stack
 cd ~/projects/local-ai-stack
 ./bootstrap.sh          # idempotent; installs Node/Pi/shim/arduino-cli/venv user-local
+./install-harness.sh    # idempotent; prompts, domains and bin scripts into ~/.pi/agent
 ./verify-stack.sh       # read-only; completion + GPU attribution + PASS/FAIL per check
 ```
 
@@ -62,8 +68,9 @@ re-target Pi (and the smoke test) at a different tier. `--no-inference` keeps CI
 to state checks only.
 
 The same scripts run inside a Debian 13 VM on Proxmox: pass the GPU through, confirm
-`lspci`/`nvidia-smi` see it *inside the guest*, then run them there. The host only supplies
-the driver.
+`lspci`/`nvidia-smi` see it *inside the guest*, then run them there. The host does not load an
+NVIDIA driver for the card (it binds it to `vfio-pci`); the guest installs its own. See
+`vmsetup.md` for the host and VM steps and `install-stack.md` for the OS and driver steps.
 
 For a new P106 box (e.g. the two-card build):
 
